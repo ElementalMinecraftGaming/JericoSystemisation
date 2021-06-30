@@ -1,0 +1,23 @@
+name: JericoSystemisation
+main: ElementalMinecraftGaming\JericoSystemisation\Main
+version: 1.0.0
+api: [3.17.1]
+load: POSTWORLD
+author: ElementalMinecraftGaming
+description: Get your very own system like in fantasy novels!
+
+commands:
+ system:
+  description: System commands and information!
+  permission: csystem.use
+ systemadmin:
+  description: Use the almighty system administrator commands to control system users systems!
+  permission: csystem.admin
+
+permissions:
+  csystem.use:
+    default: true
+    description: System commands and information!
+  csystem.admin:
+    default: op
+    description: Use the almighty system administrator commands to control system users systems!

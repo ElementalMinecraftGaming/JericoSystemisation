@@ -1,0 +1,9 @@
+# Minimum number for randomizer and maximum number
+Min: 1
+Max: 4
+
+# Systems for the randomizer to select from
+1: "StealthSystem"
+2: "CharmSystem"
+3: "MageSystem"
+4: "SwordsmanSystem"
