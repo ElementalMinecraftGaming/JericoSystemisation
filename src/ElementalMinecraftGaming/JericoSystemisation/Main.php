@@ -7,9 +7,11 @@ use pocketmine\utils\TextFormat;
 use pocketmine\utils\Config;
 use pocketmine\plugin\PluginBase;
 use pocketmine\command\CommandSender;
-use pocketmine\command\ConsoleCommandSender;
 use ElementalMinecraftGaming\JericoSystemisation\SXPInterval;
 use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\level\{Level,Position};
+use pocketmine\block\Block;
+use pocketmine\math\Vector3;
 use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
 use pocketmine\event\entity\EntityDamageEvent;
@@ -22,11 +24,13 @@ class Main extends PluginBase implements Listener {
     public $db;
     public $Interval;
     public $plugin;
+    public $config;
 
     public function onEnable() {
         @mkdir($this->getDataFolder());
         $this->db = new \SQLite3($this->getDataFolder() . "JericoSystemisation.db");
         $this->db->exec("CREATE TABLE IF NOT EXISTS USystem(user TEXT PRIMARY KEY, system TEXT, lvl INT, sxp INT, skills TEXT);");
+        //$this->db->exec("CREATE TABLE IF NOT EXISTS Math(user TEXT PRIMARY KEY, system TEXT, lvl INT, sxp INT, skills TEXT);");
         $this->saveDefaultConfig();
         $this->Interval = new Config($this->getDataFolder() . "SXPInterval.yml", Config::YAML, array("SXPInterval" => 60));
         $this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
@@ -57,7 +61,7 @@ class Main extends PluginBase implements Listener {
         $del->bindValue(":user", $user);
         $del->bindValue(":system", $system);
         $del->bindValue(":lvl", 1);
-        $del->bindValue(":sxp", 0);
+        $del->bindValue(":sxp", "Air");
         $del->bindValue(":skills", "System");
         $start = $del->execute();
     }
@@ -96,6 +100,69 @@ class Main extends PluginBase implements Listener {
     
     public function Msg($string) {
         return TextFormat::RED . "[" . TextFormat::DARK_PURPLE . "System" . TextFormat::RED . "] " . TextFormat::BLUE . "$string";
+    } 
+    
+    public function onPlayerCrouch(PlayerToggleSneakEvent $ev) {
+        $p = $ev->getPlayer();
+        $user = $p->getName();
+        $system = $this->getSystem($p, $user);
+        if ($system == "MageSystem") {
+            $px = $p->getX();
+            $py = $p->getY();
+            $pz = $p->getZ();
+            $x = round($px);
+            $y = round($py);
+            $z = round($pz);
+            $xplus = $x + 1;
+            $xminus = $x - 1;
+            $zplus = $z + 1;
+            $zminus = $z - 1;
+            $world = $ev->getPlayer()->getLevel();
+            $lvl = $this->getLvl($p, $user);
+            while ($xplus < $x + $lvl) {
+                $block = Block::get(Block::FIRE);
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $z))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($x, $y, $z), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $z))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($xplus, $y, $z), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $z))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($xminus, $y, $z), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $zplus))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($x, $y, $zplus), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $zminus))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($x, $y, $zminus), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $zplus))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($xplus, $y, $zplus), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $zminus))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($xminus, $y, $zminus), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $zminus))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($xplus, $y, $zminus), $block, true, true);
+                }
+                $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $zplus))->getId();
+                if ($pos == "Air") {
+                $world->setBlock(new Vector3($xminus, $y, $zplus), $block, true, true);
+                }
+                $xplus = $xplus+1;
+                $xminus = $xminus-1;
+                $zplus = $zplus+1;
+                $zminus = $zminus-1;
+            }
+        }
     }
     
     public function onPlayerJoin(PlayerJoinEvent $ev) {
