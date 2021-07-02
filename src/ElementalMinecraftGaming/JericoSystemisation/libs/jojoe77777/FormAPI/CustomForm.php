@@ -119,22 +119,12 @@ class CustomForm extends Form {
 
     /**
      * @param string $text
-     * @param string $placeholder
+     * @param string $pla1ceholder
      * @param string $default
      * @param string|null $label
      */
     public function addInput(string $text, string $placeholder = "", string $default = null, ?string $label = null) : void {
         $this->addContent(["type" => "input", "text" => $text, "placeholder" => $placeholder, "default" => $default]);
-        $this->labelMap[] = $label ?? count($this->labelMap);
-    }
-    
-    public function addButton(string $text, int $imageType = -1, string $imagePath = "", ?string $label = null) : void {
-        $content = ["text" => $text];
-        if($imageType !== -1) {
-            $content["image"]["type"] = $imageType === 0 ? "path" : "url";
-            $content["image"]["data"] = $imagePath;
-        }
-        $this->data["buttons"][] = $content;
         $this->labelMap[] = $label ?? count($this->labelMap);
     }
 

@@ -32,7 +32,7 @@ class Main extends PluginBase implements Listener {
     public function onEnable() {
         @mkdir($this->getDataFolder());
         $this->db = new \SQLite3($this->getDataFolder() . "JericoSystemisation.db");
-        $this->db->exec("CREATE TABLE IF NOT EXISTS USystem(user TEXT PRIMARY KEY, system TEXT, lvl INT, sxp INT, skill TEXT);");
+        $this->db->exec("CREATE TABLE IF NOT EXISTS USystem(user TEXT PRIMARY KEY, system TEXT, lvl INT, sxp INT, skill TEXT, skillpoints);");
         $this->saveDefaultConfig();
         $this->Interval = new Config($this->getDataFolder() . "SXPInterval.yml", Config::YAML, array("SXPInterval" => 60));
         $this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
@@ -60,26 +60,28 @@ class Main extends PluginBase implements Listener {
     }
 
     public function setSystem($user, $system) {
-        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill) VALUES (:user, :system, :lvl, :sxp, :skill);");
+        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
         $del->bindValue(":user", $user);
         $del->bindValue(":system", $system);
         $del->bindValue(":lvl", 1);
         $del->bindValue(":sxp", 0);
-        //$del->bindValue(":skills", "system");
         $del->bindValue(":skill", "system");
+        $del->bindValue(":skillpoints", 1);
         $start = $del->execute();
     }
 
     public function setSkill($user, $skill) {
         $lvl = $this->getLvl($user);
         $sxp = $this->getSxp($user);
+        $skillpoints = $this->getSkillPoints($user);
         $system = $this->getSystem($user);
-        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill) VALUES (:user, :system, :lvl, :sxp, :skill);");
+        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
         $del->bindValue(":user", $user);
         $del->bindValue(":system", $system);
         $del->bindValue(":lvl", $lvl);
         $del->bindValue(":sxp", $sxp);
         $del->bindValue(":skill", $skill);
+        $del->bindValue(":skillpoints", $skillpoints);
         $start = $del->execute();
     }
 
@@ -115,25 +117,28 @@ class Main extends PluginBase implements Listener {
             $lvl = $this->getLvl($user);
             $sxp = $this->getSxp($user);
             $skill = $this->getSkill($user);
+            $skillpoints = $this->getSkillPoints($user);
             $addsxp = $sxp + $amount;
             $system = $this->getSystem($user);
-            $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill) VALUES (:user, :system, :lvl, :sxp, :skill);");
+            $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
             $del->bindValue(":user", $user);
             $del->bindValue(":system", $system);
             $del->bindValue(":lvl", $lvl);
             $del->bindValue(":sxp", $addsxp);
             $del->bindValue(":skill", $skill);
+            $del->bindValue(":skillpoints", $skillpoints);
             $start = $del->execute();
             if (!$sxp >= 10) {
                 while ($sxp >= 10) {
                     $addsxp = $sxp - 10;
                     $system = $this->getSystem($user);
-                    $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill) VALUES (:user, :system, :lvl, :sxp, :skill);");
+                    $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
                     $del->bindValue(":user", $user);
                     $del->bindValue(":system", $system);
                     $del->bindValue(":lvl", $lvl);
                     $del->bindValue(":sxp", $addsxp);
                     $del->bindValue(":skill", $skill);
+                    $del->bindValue(":skillpoints", $skillpoints);
                     $start = $del->execute();
                     $this->lvlUp($user, 1);
                 }
@@ -147,25 +152,29 @@ class Main extends PluginBase implements Listener {
     public function addSXP($user, $amount) {
         $lvl = $this->getLvl($user);
         $sxp = $this->getSxp($user);
+        $skillpoints = $this->getSkillPoints($user);
         $addsxp = $sxp + $amount;
+        $skill = $this->getSkill($user);
         $system = $this->getSystem($user);
-        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill) VALUES (:user, :system, :lvl, :sxp, :skill);");
+        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
         $del->bindValue(":user", $user);
         $del->bindValue(":system", $system);
         $del->bindValue(":lvl", $lvl);
         $del->bindValue(":sxp", $addsxp);
         $del->bindValue(":skill", $skill);
+        $del->bindValue(":skillpoints", $skillpoints);
         $start = $del->execute();
         if (!$sxp >= 10) {
             while ($sxp >= 10) {
                 $addsxp = $sxp - 10;
                 $system = $this->getSystem($user);
-                $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill) VALUES (:user, :system, :lvl, :sxp, :skill);");
+                $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
                 $del->bindValue(":user", $user);
                 $del->bindValue(":system", $system);
                 $del->bindValue(":lvl", $lvl);
                 $del->bindValue(":sxp", $addsxp);
                 $del->bindValue(":skill", $skill);
+                $del->bindValue(":skillpoints", $skillpoints);
                 $start = $del->execute();
                 $this->lvlUp($user, 1);
             }
@@ -173,6 +182,48 @@ class Main extends PluginBase implements Listener {
         } else {
             return false;
         }
+    }
+
+    public function addSkillPoints($user, $amount) {
+        $lvl = $this->getLvl($user);
+        $sxp = $this->getSxp($user);
+        $skill = $this->getSkill($user);
+        $sp = $this->getSkillPoints($user);
+        $skillpoints = $sp + $amount;
+        $system = $this->getSystem($user);
+        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
+        $del->bindValue(":user", $user);
+        $del->bindValue(":system", $system);
+        $del->bindValue(":lvl", $lvl);
+        $del->bindValue(":sxp", $sxp);
+        $del->bindValue(":skill", $skill);
+        $del->bindValue(":skillpoints", $skillpoints);
+        $start = $del->execute();
+    }
+
+    public function minusSkillPoints($user, $amount) {
+        $lvl = $this->getLvl($user);
+        $sxp = $this->getSxp($user);
+        $skill = $this->getSkill($user);
+        $sp = $this->getSkillPoints($user);
+        $skillpoints = $sp - $amount;
+        $system = $this->getSystem($user);
+        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
+        $del->bindValue(":user", $user);
+        $del->bindValue(":system", $system);
+        $del->bindValue(":lvl", $lvl);
+        $del->bindValue(":sxp", $sxp);
+        $del->bindValue(":skill", $skill);
+        $del->bindValue(":skillpoints", $skillpoints);
+        $start = $del->execute();
+    }
+
+    public function getSkillPoints($user) {
+        $search = $this->db->prepare("SELECT skillpoints FROM USystem WHERE user = :user;");
+        $search->bindValue(":user", $user);
+        $start = $search->execute();
+        $skillpoints = $start->fetchArray(SQLITE3_ASSOC);
+        return $skillpoints["skillpoints"];
     }
 
     public function getSkill($user) {
@@ -263,7 +314,7 @@ class Main extends PluginBase implements Listener {
             $systemNumber = mt_rand($min, $max);
             $system = $this->config->get($systemNumber);
             $this->setSystem($user, $system);
-            $arr = ["system"];
+            $arr = ["system", "system", "system"];
             $this->playerskills->set($user, $arr);
             $this->playerskills->save();
             $p->sendMessage($this->Msg("\nSystem synchronising to soul...\nSystem loading...\nSYSTEM LOADED!\nWelcome to the $system!\n\n==== You can look at your stats and select skills in /system ===="));
@@ -300,6 +351,104 @@ class Main extends PluginBase implements Listener {
         $form->sendToPlayer($p);
     }
 
+    public function skillShopForm($p, $user) {
+        $MenuInfoImage = $this->config->get("MenuInfo");
+        $MenuSkillsImage = $this->config->get("MenuSkills");
+        $MenuShopImage = $this->config->get("MenuShop");
+        $system = $this->getSystem($user);
+        if ($system == "MageSystem") {
+            $form = new simpleForm(function (Player $player, $data) {
+                        switch ($data) {
+                            case 0:
+                                $form = new simpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    $form = new simpleForm(function (Player $player, $data) {
+                                                                switch ($data) {
+                                                                    case 0:
+                                                                        $user = $player->getName();
+                                                                        $cskill = $this->playerskills->get($user);
+                                                                        $skillOne = "FlameStar";
+                                                                        $skillTwo = $cskill[1];
+                                                                        $skillThree = $cskill[2];
+                                                                        $this->playerskills->remove($user);
+                                                                        $this->playerskills->save();
+                                                                        $this->playerskills->reload();
+                                                                        $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                        $this->playerskills->save();
+                                                                        $this->playerskills->reload();
+                                                                        $this->minusSkillPoints($user, 1);
+                                                                        return;
+                                                                    case 1:
+                                                                        $user = $player->getName();
+                                                                       $cskill = $this->playerskills->get($user);
+                                                                        $skillTwo = "FlameStar";
+                                                                        $skillOne = $cskill[0];
+                                                                        $skillThree = $cskill[2];
+                                                                        $this->playerskills->remove($user);
+                                                                        $this->playerskills->save();
+                                                                        $this->playerskills->reload();
+                                                                        $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                        $this->playerskills->save();
+                                                                        $this->playerskills->reload();
+                                                                        $this->minusSkillPoints($user, 1);
+                                                                        return;
+                                                                    case 2:
+                                                                        $user = $player->getName();
+                                                                        $cskill = $this->playerskills->get($user);
+                                                                        $skillThree = "FlameStar";
+                                                                        $skillTwo = $cskill[1];
+                                                                        $skillOne = $cskill[0];
+                                                                        $this->playerskills->remove($user);
+                                                                        $this->playerskills->save();
+                                                                        $this->playerskills->reload();
+                                                                        $this->playerskills->set($user, [$skillOne, $skillTwo, $skillTwo]);
+                                                                        $this->playerskills->save();
+                                                                        $this->playerskills->reload();
+                                                                        $this->minusSkillPoints($user, 1);
+                                                                        return;
+                                                                }
+                                                            });
+                                                    $user = $player->getName();
+                                                    $system = $this->getSystem($user);
+                                                    $cskill = $this->playerskills->get($user);
+                                                    $skillThree = $cskill[2];
+                                                    $skillTwo = $cskill[1];
+                                                    $skillOne = $cskill[0];
+                                                    $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                    $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                    $form->addButton(TextFormat::RED . "$skillOne");
+                                                    $form->addButton(TextFormat::RED. "$skillTwo");
+                                                    $form->addButton(TextFormat::RED . "$skillThree");
+                                                    $form->sendToPlayer($player);
+                                                    return;
+                                                case 1:
+                                                    return;
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $system = $this->getSystem($user);
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Creates a star of fire on the ground from where you are standing. (Will not break blocks that are flame proof and won't appear at half blocks)\nBecomes stronger the higher your level.");
+                                $form->addButton(TextFormat::GREEN . "Buy: 1 SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+                        }
+                    });
+            $system = $this->getSystem($user);
+            $MenuInfoImage = $this->config->get("MenuInfo");
+            $form->setTitle(TextFormat::DARK_PURPLE . $system);
+            $form->setContent("");
+            $form->addButton("FlameStar", 1, $MenuInfoImage);
+            $form->sendToPlayer($p);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     //=========COMMANDS=========\\
     public function onCommand(CommandSender $sender, Command $command, string $label, array $args): bool {
         if (strtolower($command->getName()) == "system") {
@@ -311,6 +460,7 @@ class Main extends PluginBase implements Listener {
                     $system = $this->getSystem($user);
                     $MenuInfoImage = $this->config->get("MenuInfo");
                     $MenuSkillsImage = $this->config->get("MenuSkills");
+                    $MenuShopImage = $this->config->get("MenuShop");
                     $form = new SimpleForm(function (Player $player, $data) {
                                 switch ($data) {
                                     case 0:
@@ -357,6 +507,10 @@ class Main extends PluginBase implements Listener {
                                         $user = $player->getName();
                                         $this->setSkillForm($player, $user);
                                         return;
+                                    case 3:
+                                        $user = $player->getName();
+                                        $this->skillShopForm($player, $user);
+                                        return;
                                 }
                             });
                     $form->setTitle($system);
@@ -364,6 +518,7 @@ class Main extends PluginBase implements Listener {
                     $form->addButton("Info", 1, "$MenuInfoImage");
                     $form->addButton("Skills", 1, "$MenuSkillsImage");
                     $form->addButton("Select Skill", 1, "$MenuSkillsImage");
+                    $form->addButton("Skill Store", 1, "$MenuShopImage");
                     $form->sendToPlayer($sender);
                     return true;
                 } else {
