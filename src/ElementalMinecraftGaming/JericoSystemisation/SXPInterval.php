@@ -14,6 +14,6 @@ class SXPInterval extends Task {
 	}
 
     public function onRun(int $currentTick){
-        //$this->plugin->addSXP(1);
+        $this->plugin->autoSXP();
     }
 }

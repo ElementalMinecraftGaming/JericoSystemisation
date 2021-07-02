@@ -1,6 +1,13 @@
+# Button Images
+MenuInfo: "https://i.imgur.com/SBaHPa3.png"
+MenuSkills: "https://i.imgur.com/X2PKM6J.png"
+
 # Minimum number for randomizer and maximum number
-Min: 1
-Max: 4
+MinSR: 1
+MaxSR: 4
+
+# Max system XP per level
+Max: 50
 
 # Systems for the randomizer to select from
 1: "StealthSystem"
