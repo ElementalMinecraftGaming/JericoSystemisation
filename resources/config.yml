@@ -1,6 +1,7 @@
 # Button Images
 MenuInfo: "https://i.imgur.com/SBaHPa3.png"
 MenuSkills: "https://i.imgur.com/X2PKM6J.png"
+MenuShop: "https://i.imgur.com/X2PKM6J.png"
 
 # Minimum number for randomizer and maximum number
 MinSR: 1
@@ -10,7 +11,79 @@ MaxSR: 4
 Max: 50
 
 # Systems for the randomizer to select from
-1: "StealthSystem"
-2: "CharmSystem"
+1: "HealerSystem"
+2: "SpellBreakerSystem"
 3: "MageSystem"
-4: "SwordsmanSystem"
+4: "BerserkerSystem"
+
+# Prices for skill shop (uses skill points) and system evolution (uses level and skill points)
+# ===Mage===
+SnowballStar: 5
+ArrowStar: 20
+FlameStar: 30
+MoltenStar: 460
+SnowballCross: 10
+ArrowCross: 13
+FlameCross: 20
+MoltenCross: 370
+Summon: 900
+EvolutionSP: 320
+EvolutionLVL: 750
+
+# ===Healer===
+Heal: 7
+BigHeal: 19
+MaxHeal: 23
+BlessedHeal: 58
+Buff: 278
+Debuff: 278
+PlasticSurgery: 65
+EvolutionSP: 320
+EvolutionLVL: 750
+
+# ===SpellBreaker===
+FireBreak: 20
+DrownBreak: 40
+MoltenBreak: 60 #Only works in the overworld
+ArrowBreak: 35
+AntiMage: 500
+EvolutionSP: 320
+EvolutionLVL: 750
+
+# ===Berserker===
+DoubleDamage: 10
+IronSkin: 35
+TripleDamage: 25
+Bloodlust: 75 #Quadriple damage, Iron Skin, life steal
+EvolutionSP: 320
+EvolutionLVL: 750
+
+# Evolution Classes
+
+# ===OverLord=== -Evolution of the SprellBreaker-
+LifeSteal: 300
+Health: 70
+Teleportation: 60
+Mage: 800
+Healer: 800
+LifeClog: 15 #Stops people stealing life through skills
+
+# ===Demon=== -Evolution of Berserker-
+LifeSteal: 250
+LifeWither: 500
+FireResistance: 5
+DemonFlameStar: 40
+DemonFlameCross: 30
+
+# ===Warlock=== -Evolution of Mage-
+TripleDamage: 250
+Teleportation: 100
+WitherBlade: 180
+Invisibility: 925
+
+# ===YingYang=== -Evolution of Healer-
+PoisonSword: 72
+WitherSword: 100
+WitherAOE: 300 #8 blocks from player position
+ArrowAOE: 150
+LifeStealAOE: 125
