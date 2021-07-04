@@ -3,12 +3,15 @@ MenuInfo: "https://i.imgur.com/SBaHPa3.png"
 MenuSkills: "https://i.imgur.com/X2PKM6J.png"
 MenuShop: "https://i.imgur.com/X2PKM6J.png"
 
+# System World
+World: "world"
+
 # Minimum number for randomizer and maximum number
 MinSR: 1
 MaxSR: 4
 
 # Max system XP per level
-Max: 50
+MaxSXP: 50
 
 # Systems for the randomizer to select from
 1: "HealerSystem"

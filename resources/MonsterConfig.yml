@@ -1,0 +1,21 @@
+# Some randomizer settings for monsters
+
+# Names
+1: "BillyBobJones"
+2: "Ethreal"
+3: "Nekros"
+4: "Calamity"
+5: "Yondra"
+6: "Skell"
+7: "Gorge"
+8: "Hellion"
+9: "Cursed"
+10: "?"
+
+# Abilities (On damage)
+1: "LifeDrain"
+2: "DoubleDamage"
+
+# Demonize Roulette
+1: "Yes"
+2: "No"
