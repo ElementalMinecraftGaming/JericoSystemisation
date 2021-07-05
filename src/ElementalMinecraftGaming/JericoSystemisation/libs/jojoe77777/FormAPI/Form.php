@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI;
+namespace ElementalMinecraftGaming\JericoSystemisation;
 
 use pocketmine\form\Form as IForm;
 use pocketmine\Player;

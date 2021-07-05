@@ -3,7 +3,7 @@
 namespace ElementalMinecraftGaming\JericoSystemisation;
 
 use pocketmine\Player;
-use pocketmine\Entity;
+use pocketmine\entity\Entity;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\Config;
 use pocketmine\plugin\PluginBase;
