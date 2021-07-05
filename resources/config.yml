@@ -1,3 +1,6 @@
+# Config version (To save old data when a new config is needed)
+Config-Version: 1
+
 # Button Images
 MenuInfo: "https://i.imgur.com/SBaHPa3.png"
 MenuSkills: "https://i.imgur.com/X2PKM6J.png"
@@ -11,7 +14,7 @@ MinSR: 1
 MaxSR: 4
 
 # Max system XP per level
-MaxSXP: 50
+MaxSXP: 49
 
 # Systems for the randomizer to select from
 1: "HealerSystem"
@@ -30,8 +33,8 @@ ArrowCross: 13
 FlameCross: 20
 MoltenCross: 370
 Summon: 900
-EvolutionSP: 320
-EvolutionLVL: 750
+MageEvolutionSP: 320
+MageEvolutionLVL: 750
 
 # ===Healer===
 Heal: 7
@@ -41,8 +44,8 @@ BlessedHeal: 58
 Buff: 278
 Debuff: 278
 PlasticSurgery: 65
-EvolutionSP: 320
-EvolutionLVL: 750
+HealerEvolutionSP: 320
+HealerEvolutionLVL: 750
 
 # ===SpellBreaker===
 FireBreak: 20
@@ -50,21 +53,21 @@ DrownBreak: 40
 MoltenBreak: 60 #Only works in the overworld
 ArrowBreak: 35
 AntiMage: 500
-EvolutionSP: 320
-EvolutionLVL: 750
+SpellBreakerEvolutionSP: 320
+SpellBreakerEvolutionLVL: 750
 
 # ===Berserker===
 DoubleDamage: 10
 IronSkin: 35
 TripleDamage: 25
 Bloodlust: 75 #Quadriple damage, Iron Skin, life steal
-EvolutionSP: 320
-EvolutionLVL: 750
+BerserkerEvolutionSP: 320
+BerserkerEvolutionLVL: 750
 
 # Evolution Classes
 
 # ===OverLord=== -Evolution of the SprellBreaker-
-LifeSteal: 300
+OverlordLifeSteal: 300
 Health: 70
 Teleportation: 60
 Mage: 800
@@ -72,7 +75,7 @@ Healer: 800
 LifeClog: 15 #Stops people stealing life through skills
 
 # ===Demon=== -Evolution of Berserker-
-LifeSteal: 250
+DemonLifeSteal: 250
 LifeWither: 500
 FireResistance: 5
 DemonFlameStar: 40

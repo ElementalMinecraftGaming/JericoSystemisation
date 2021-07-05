@@ -1,5 +1,8 @@
 # Some randomizer settings for monsters
 
+# Config version
+Config-Version: 1
+
 # Names
 1: "BillyBobJones"
 2: "Ethreal"
@@ -12,10 +15,19 @@
 9: "Cursed"
 10: "?"
 
-# Abilities (On damage)
-1: "LifeDrain"
-2: "DoubleDamage"
+# Name lists (Must be changed if the name section is)
+MonsterNames:
+- BillyBobJones
+- Ethreal
+- Nekros
+- Calamity
+- Yondra
+- Skell
+- Gorge
+- Hellion
+- Cursed
+- ?
 
-# Demonize Roulette
-1: "Yes"
-2: "No"
+# Abilities (On damage)
+11: "FlameAttack"
+12: "DoubleDamage"

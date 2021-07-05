@@ -10,13 +10,18 @@ use pocketmine\command\CommandSender;
 use ElementalMinecraftGaming\JericoSystemisation\SXPInterval;
 use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\SimpleForm;
 use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\customForm;
+use revivalpmmp\pureentities\entity\monster\Monster;
+//use jasonwynn10\VanillaEntityAI\entity\InventoryHolder;
 use pocketmine\event\player\PlayerJoinEvent;
+use pocketmine\event\player\PlayerDeathEvent;
 use pocketmine\level\{Level,Position};
 use pocketmine\block\Block;
 use pocketmine\math\Vector3;
 use pocketmine\event\entity\EntityDamageByEntityEvent;
+use pocketmine\event\entity\EntityDeathEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\player\PlayerToggleSneakEvent;
+use pocketmine\item;
 use pocketmine\command\Command;
 use pocketmine\event\Listener;
 
@@ -30,12 +35,21 @@ class Main extends PluginBase implements Listener {
     public function onEnable() {
         @mkdir($this->getDataFolder());
         $this->db = new \SQLite3($this->getDataFolder() . "JericoSystemisation.db");
-        $this->db->exec("CREATE TABLE IF NOT EXISTS USystem(user TEXT PRIMARY KEY, system TEXT, lvl INT, sxp INT, skill TEXT, skillpoints);");
+        $this->db->exec("CREATE TABLE IF NOT EXISTS USystem(user TEXT PRIMARY KEY, system TEXT, lvl INT, sxp INT, skill TEXT, skillpoints INT);");
         $this->saveDefaultConfig();
+        $this->saveResource("MonsterConfig.yml");
+        if (!$this->getConfig()->get("Config-Version") == 1) {
+            rename($this->getDataFolder() . "config.yml", $this->getDataFolder() . "config_old.yml");
+            $this->saveResource("config.yml");
+        }
+        $this->MonsterConfig = new Config($this->getDataFolder() . "MonsterConfig.yml", Config::YAML);
+        if (!$this->MonsterConfig->get("Config-Version") == 1) {
+            rename($this->getDataFolder() . "MonsterConfig.yml", $this->getDataFolder() . "MonsterConfig_old.yml");
+            $this->saveResource("MonsterConfig.yml");
+        }
         $this->Interval = new Config($this->getDataFolder() . "SXPInterval.yml", Config::YAML, array("SXPInterval" => 60));
         $this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
         $this->playerskills = new Config($this->getDataFolder() . "PlayerSkills.yml", Config::YAML);
-        $this->saveResource("MonsterConfig.yml");
         $this->MonsterConfig = new Config($this->getDataFolder() . "MonsterConfig.yml", Config::YAML);
         $this->getScheduler()->scheduleRepeatingTask(new SXPInterval($this), $this->Interval->get("SXPInterval") * 20);
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
@@ -74,6 +88,21 @@ class Main extends PluginBase implements Listener {
         $lvl = $this->getLvl($user);
         $sxp = $this->getSxp($user);
         $skillpoints = $this->getSkillPoints($user);
+        $system = $this->getSystem($user);
+        $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
+        $del->bindValue(":user", $user);
+        $del->bindValue(":system", $system);
+        $del->bindValue(":lvl", $lvl);
+        $del->bindValue(":sxp", $sxp);
+        $del->bindValue(":skill", $skill);
+        $del->bindValue(":skillpoints", $skillpoints);
+        $start = $del->execute();
+    }
+
+    public function setSkillPoints($user, $skillpoints) {
+        $lvl = $this->getLvl($user);
+        $sxp = $this->getSxp($user);
+        $skill = $this->getSkill($user);
         $system = $this->getSystem($user);
         $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
         $del->bindValue(":user", $user);
@@ -134,7 +163,6 @@ class Main extends PluginBase implements Listener {
                 if ($sxp >= $max) {
                     while ($sxp >= $max) {
                         $this->lvlUp($user, 1);
-                        $player->sendMessage($this->Msg("User has leveled up"));
                         $addsxp = $sxp - $max;
                         $system = $this->getSystem($user);
                         $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
@@ -146,9 +174,6 @@ class Main extends PluginBase implements Listener {
                         $del->bindValue(":skillpoints", $skillpoints);
                         $start = $del->execute();
                     }
-                    return true;
-                } else {
-                    return false;
                 }
             }
         }
@@ -174,7 +199,6 @@ class Main extends PluginBase implements Listener {
         if ($sxp >= $max) {
             while ($sxp >= $max) {
                 $this->lvlUp($user, 1);
-                $player->sendMessage($this->Msg("User has leveled up"));
                 $addsxp = $sxp - $max;
                 $system = $this->getSystem($user);
                 $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
@@ -186,9 +210,6 @@ class Main extends PluginBase implements Listener {
                 $del->bindValue(":skillpoints", $skillpoints);
                 $start = $del->execute();
             }
-            return true;
-        } else {
-            return false;
         }
     }
 
@@ -196,8 +217,7 @@ class Main extends PluginBase implements Listener {
         $lvl = $this->getLvl($user);
         $sxp = $this->getSxp($user);
         $skill = $this->getSkill($user);
-        $sp = $this->getSkillPoints($user);
-        $skillpoints = $sp + $amount;
+        $skillpoints = $this->getSkillPoints($user);
         $system = $this->getSystem($user);
         $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
         $del->bindValue(":user", $user);
@@ -205,7 +225,7 @@ class Main extends PluginBase implements Listener {
         $del->bindValue(":lvl", $lvl);
         $del->bindValue(":sxp", $sxp);
         $del->bindValue(":skill", $skill);
-        $del->bindValue(":skillpoints", $skillpoints);
+        $del->bindValue(":skillpoints", $skillpoints + $amount);
         $start = $del->execute();
     }
 
@@ -229,8 +249,7 @@ class Main extends PluginBase implements Listener {
         $lvl = $this->getLvl($user);
         $sxp = $this->getSxp($user);
         $skill = $this->getSkill($user);
-        $sp = $this->getSkillPoints($user);
-        $skillpoints = $sp - $amount;
+        $skillpoints = $this->getSkillPoints($user);
         $system = $this->getSystem($user);
         $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
         $del->bindValue(":user", $user);
@@ -238,7 +257,7 @@ class Main extends PluginBase implements Listener {
         $del->bindValue(":lvl", $lvl);
         $del->bindValue(":sxp", $sxp);
         $del->bindValue(":skill", $skill);
-        $del->bindValue(":skillpoints", $skillpoints);
+        $del->bindValue(":skillpoints", $skillpoints - $amount);
         $start = $del->execute();
     }
 
@@ -247,7 +266,7 @@ class Main extends PluginBase implements Listener {
         $search->bindValue(":user", $user);
         $start = $search->execute();
         $skillpoints = $start->fetchArray(SQLITE3_ASSOC);
-        return $skillpoints["skillpoints"];
+        return (INT) $skillpoints["skillpoints"];
     }
 
     public function getSkill($user) {
@@ -262,30 +281,101 @@ class Main extends PluginBase implements Listener {
         return TextFormat::RED . "[" . TextFormat::DARK_PURPLE . "System" . TextFormat::RED . "] " . TextFormat::BLUE . "$string";
     }
 
-    /*public function damageEvent(EntityDamageEvent $ev) {
-        if ($ev instanceof EntityDamageByEntityEvent) {
-            $attacked = $ev->getEntity();
-            $attacker = $ev->getDamager();
+    public function playerKilled(PlayerDeathEvent $ev) {
+        $player = $ev->getPlayer();
+        if ($player instanceof Player) {
+            $getCause = $player->getLastDamageCause();
+            if ($getCause instanceof EntityDamageByEntityEvent) {
+                $killer = $getCause->getDamager();
+                if ($killer instanceof Player) {
+                    $user = $killer->getName();
+                    $this->addSkillPoints($user, 2);
+                }
+            }
+        }
+    }
+
+    public function entityKilled(EntityDeathEvent $ev) {
+        $entity = $ev->getEntity();
+        $getCause = $entity->getLastDamageCause();
+        if ($getCause instanceof EntityDamageByEntityEvent) {
+            $killer = $getCause->getDamager();
+            if ($killer instanceof Player) {
+                $monsterName = $entity->getNameTag();
+                $nameList = $this->MonsterConfig->get("MonsterNames");
+                $user = $killer->getName();
+                if ($this->getServer()->getPluginManager()->getPlugin("PureEntitiesX")) {
+                    if ($entity instanceof Entity || $entity instanceof Monster) {
+                        $this->addSkillPoints($user, 1);
+                        foreach ($nameList as $monster) {
+                            if ($monsterName == $monster) {
+                                $this->addSkillPoints($user, 2);
+                            }
+                        }
+                    }
+                } elseif ($entity instanceof Entity) {
+                    $this->addSkillPoints($user, 1);
+                }
+            }
+        }
+    }
+
+    public function damageEvent(EntityDamageEvent $event) {
+        $attacked = $event->getEntity();
+        if ($event instanceof EntityDamageByEntityEvent) {
+            $attacker = $event->getDamager();
             if ($attacker instanceof Player) {
                 $world = $attacker->getLevel()->getFolderName();
                 if ($world == $this->config->get("World")) {
-                    $originalDamage = $attacked->getBaseDamage();
+                    $Damage = $event->getBaseDamage();
                     $attackerSystem = $this->getSystem($attacker->getName());
                     $attackerSkill = $this->getSkill($attacker->getName());
-                    if ($attackerSystem == "Berserker") {
+                    if ($attackerSystem == "BerserkerSystem") {
                         if ($attackerSkill == "DoubleDamage") {
-                            $attacked->SetBaseDamage($originalDamage * 2);
+                            $item = $attacker->getInventory()->getItemInHand();
+                            $event->setModifier($item->getAttackPoints() * 2, 3);
                         }
                     }
                 }
             } elseif (!$attacker instanceof Player && $attacked instanceof Player) {
                 $world = $attacked->getLevel()->getFolderName();
                 if ($world == $this->config->get("World")) {
-                    
+                    $entityTag = $attacker->getNameTag();
+                    $monsterTags = $this->MonsterConfig->get("MonsterNames");
+                    foreach ($monsterTags as $monsterName) {
+                        if (!$entityTag == $monsterName) {
+                            $demonizeTest = mt_rand(1, 2);
+                            if ($demonizeTest == 1) {
+                                $monsterName = $this->MonsterConfig->get(mt_rand(1, 10));
+                                $attacker->setNameTag($monsterName);
+                                $attacker->setNameTagVisible(true);
+                                $attacker->setNameTagAlwaysVisible(true);
+                            }
+                        } else {
+                            $monsterSkill = $this->MonsterConfig->get(mt_rand(11, 12));
+                            if ($monsterSkill == "FlameAttack") {
+                                $attacked->setOnFire(5);
+                            } elseif ($monsterSkill == "DoubleDamage") {
+                                if ($this->getServer()->getPluginManager()->getPlugin("PureEntitiesX")) {
+                                    if ($attacker instanceof Entity) {
+                                        if ($attacker instanceof Monster) {
+                                            $item = $attacker->getInventory()->getItemInHand();
+                                            $event->setModifier($item->getAttackPoints() * 2, 3);
+                                        }
+                                        /* } elseif ($this->getServer()->getPluginManager()->getPlugin("VanillaEntitiesAI")) {
+                                          if ($attacker instanceof InventoryHolder) {
+                                          $item = $attacker->getMainHand();
+                                          $event->setModifier($item->getAttackPoints() * 2, 3);
+                                          } */
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
-            } 
+            }
         }
-    }*/
+    }
 
     public function onPlayerCrouch(PlayerToggleSneakEvent $ev) {
         $p = $ev->getPlayer();
@@ -389,47 +479,13 @@ class Main extends PluginBase implements Listener {
                         $zminus = $zminus - 1;
                     }
                 }
-            } elseif ($system == "SpellBreakerSysten") {
-                if ($activeskill == "FireCross") {
-                    $px = $p->getX();
-                    $py = $p->getY();
-                    $pz = $p->getZ();
-                    $x = round($px);
-                    $y = round($py);
-                    $z = round($pz);
-                    $xplus = $x + 1;
-                    $xminus = $x - 1;
-                    $zplus = $z + 1;
-                    $zminus = $z - 1;
-                    $world = $ev->getPlayer()->getLevel();
-                    $lvl = $this->getLvl($user);
-                    while ($xplus < $x + $lvl) {
-                        $block = Block::get(Block::AIR);
-                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $z))->getId();
-                        if ($pos == "Fire") {
-                            $world->setBlock(new Vector3($x, $y, $z), $block, true, true);
-                        }
-                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $z))->getId();
-                        if ($pos == "Fire") {
-                            $world->setBlock(new Vector3($xplus, $y, $z), $block, true, true);
-                        }
-                        if ($pos == "Fire") {
-                            $world->setBlock(new Vector3($xminus, $y, $z), $block, true, true);
-                        }
-                        if ($pos == "Fire") {
-                            $world->setBlock(new Vector3($x, $y, $zplus), $block, true, true);
-                        }
-                        if ($pos == "Fire") {
-                            $world->setBlock(new Vector3($x, $y, $zminus), $block, true, true);
-                        }
-                        $xplus = $xplus + 1;
-                        $xminus = $xminus - 1;
-                        $zplus = $zplus + 1;
-                        $zminus = $zminus - 1;
-                    }
+            } elseif ($system == "SpellBreakerSystem") {
+                $activeskill = $this->getSkill($user);
+                if ($activeskill == "FireBreak") {
                     $p->extinguish();
                 }
             } elseif ($system == "HealerSystem") {
+                $activeskill = $this->getSkill($user);
                 if ($activeskill == "Heal") {
                     $currentHealth = $p->getHealth();
                     $p->setHealth($currentHealth + 1);
@@ -584,6 +640,91 @@ class Main extends PluginBase implements Listener {
                                 $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
                                 $form->sendToPlayer($player);
                                 return;
+                            case 2:
+                                $form = new simpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("FlameCross")) {
+                                                        $form = new simpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("FlameCross");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "FlameCross";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("FlameCross");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillTwo = "FlameCross";
+                                                                            $skillOne = $cskill[0];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("FlameCross");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillThree = "FlameCross";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillOne = $cskill[0];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $system = $this->getSystem($user);
+                                $price = $this->config->get("FlameCross");
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Creates a Cross of fire on the ground from where you are standing when you crouch. (Will not break blocks that are flame proof and won't appear at half blocks)\nBecomes stronger the higher your level.");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
                         }
                     });
             $system = $this->getSystem($user);
@@ -591,6 +732,7 @@ class Main extends PluginBase implements Listener {
             $form->setTitle(TextFormat::DARK_PURPLE . $system);
             $form->setContent("");
             $form->addButton("FlameStar", 1, $MenuInfoImage);
+            $form->addButton("FlameCross", 1, $MenuInfoImage);
             $form->sendToPlayer($p);
             return true;
         } elseif ($system == "SpellBreakerSystem") {
@@ -701,11 +843,11 @@ class Main extends PluginBase implements Listener {
                                                                     switch ($data) {
                                                                         case 0:
                                                                             $user = $player->getName();
+                                                                            $price = $this->config->get("Heal");
                                                                             $cskill = $this->playerskills->get($user);
                                                                             $skillOne = "Heal";
                                                                             $skillTwo = $cskill[1];
                                                                             $skillThree = $cskill[2];
-                                                                            $price = $this->config->get("Heal");
                                                                             $this->playerskills->remove($user);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
@@ -716,11 +858,11 @@ class Main extends PluginBase implements Listener {
                                                                             return;
                                                                         case 1:
                                                                             $user = $player->getName();
-                                                                            $cskill = $this->playerskills->get($user);
-                                                                            $skillTwo = "Heal";
-                                                                            $skillOne = $cskill[0];
-                                                                            $skillThree = $cskill[2];
                                                                             $price = $this->config->get("Heal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Heal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
                                                                             $this->playerskills->remove($user);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
@@ -733,13 +875,13 @@ class Main extends PluginBase implements Listener {
                                                                             $user = $player->getName();
                                                                             $price = $this->config->get("Heal");
                                                                             $cskill = $this->playerskills->get($user);
-                                                                            $skillThree = "Heal";
+                                                                            $skillOne = "Heal";
                                                                             $skillTwo = $cskill[1];
-                                                                            $skillOne = $cskill[0];
+                                                                            $skillThree = $cskill[2];
                                                                             $this->playerskills->remove($user);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
-                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillTwo]);
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
                                                                             $this->minusSkillPoints($user, $price);
@@ -797,11 +939,11 @@ class Main extends PluginBase implements Listener {
                                                                     switch ($data) {
                                                                         case 0:
                                                                             $user = $player->getName();
+                                                                            $price = $this->config->get("DoubleDamage");
                                                                             $cskill = $this->playerskills->get($user);
-                                                                            $skillOne = "FireBreak";
+                                                                            $skillOne = "DoubleDamage";
                                                                             $skillTwo = $cskill[1];
                                                                             $skillThree = $cskill[2];
-                                                                            $price = $this->config->get("DoubleDamage");
                                                                             $this->playerskills->remove($user);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
@@ -812,11 +954,11 @@ class Main extends PluginBase implements Listener {
                                                                             return;
                                                                         case 1:
                                                                             $user = $player->getName();
-                                                                            $cskill = $this->playerskills->get($user);
-                                                                            $skillTwo = "DoubleDamage";
-                                                                            $skillOne = $cskill[0];
-                                                                            $skillThree = $cskill[2];
                                                                             $price = $this->config->get("DoubleDamage");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "DoubleDamage";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
                                                                             $this->playerskills->remove($user);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
@@ -829,13 +971,13 @@ class Main extends PluginBase implements Listener {
                                                                             $user = $player->getName();
                                                                             $price = $this->config->get("DoubleDamage");
                                                                             $cskill = $this->playerskills->get($user);
-                                                                            $skillThree = "DoubleDamage";
+                                                                            $skillOne = "DoubleDamage";
                                                                             $skillTwo = $cskill[1];
-                                                                            $skillOne = $cskill[0];
+                                                                            $skillThree = $cskill[2];
                                                                             $this->playerskills->remove($user);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
-                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillTwo]);
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
                                                                             $this->playerskills->save();
                                                                             $this->playerskills->reload();
                                                                             $this->minusSkillPoints($user, $price);
@@ -915,12 +1057,14 @@ class Main extends PluginBase implements Listener {
                                                 $system = $this->getSystem($user);
                                                 $lvl = $this->getLvl($user);
                                                 $activeskill = $this->getSkill($user);
+                                                $skillpoints = $this->getSkillPoints($user);
                                                 $sxp = $this->getSxp($user);
                                                 $MenuInfoImage = $this->config->get("MenuInfo");
                                                 $form->setTitle(TextFormat::DARK_PURPLE . $system);
                                                 $form->addLabel(TextFormat::GREEN . "System User: $user");
                                                 $form->addLabel(TextFormat::GREEN . "Level: $lvl");
                                                 $form->addLabel(TextFormat::GREEN . "XP: $sxp");
+                                                $form->addLabel(TextFormat::GREEN . "Skill Points: $skillpoints");
                                                 $form->addLabel(TextFormat::GREEN . "Active Skill: $activeskill");
                                                 $skillList = $this->playerskills->get($user);
                                                 $form->sendToPlayer($player);
@@ -979,12 +1123,14 @@ class Main extends PluginBase implements Listener {
                                                 $system = $this->getSystem($user);
                                                 $lvl = $this->getLvl($user);
                                                 $activeskill = $this->getSkill($user);
+                                                $sp = $this->getSkillPoints($user);
                                                 $sxp = $this->getSxp($user);
                                                 $MenuInfoImage = $this->config->get("MenuInfo");
                                                 $form->setTitle(TextFormat::DARK_PURPLE . $system);
                                                 $form->addLabel(TextFormat::GREEN . "System User: $user");
                                                 $form->addLabel(TextFormat::GREEN . "Level: $lvl");
                                                 $form->addLabel(TextFormat::GREEN . "XP: $sxp");
+                                                $form->addLabel(TextFormat::GREEN . "Skill Points: $sp");
                                                 $form->addLabel(TextFormat::GREEN . "Active Skill: $activeskill");
                                                 $skillList = $this->playerskills->get($user);
                                                 $form->sendToPlayer($player);
@@ -1042,12 +1188,14 @@ class Main extends PluginBase implements Listener {
                                                 $system = $this->getSystem($user);
                                                 $lvl = $this->getLvl($user);
                                                 $activeskill = $this->getSkill($user);
+                                                $sp = $this->getSkillPoints($user);
                                                 $sxp = $this->getSxp($user);
                                                 $MenuInfoImage = $this->config->get("MenuInfo");
                                                 $form->setTitle(TextFormat::DARK_PURPLE . $system);
                                                 $form->addLabel(TextFormat::GREEN . "System User: $user");
                                                 $form->addLabel(TextFormat::GREEN . "Level: $lvl");
                                                 $form->addLabel(TextFormat::GREEN . "XP: $sxp");
+                                                $form->addLabel(TextFormat::GREEN . "Skill Points: $sp");
                                                 $form->addLabel(TextFormat::GREEN . "Active Skill: $activeskill");
                                                 $skillList = $this->playerskills->get($user);
                                                 $form->sendToPlayer($player);
@@ -1105,12 +1253,14 @@ class Main extends PluginBase implements Listener {
                                                 $system = $this->getSystem($user);
                                                 $lvl = $this->getLvl($user);
                                                 $activeskill = $this->getSkill($user);
+                                                $sp = $this->getSkillPoints($user);
                                                 $sxp = $this->getSxp($user);
                                                 $MenuInfoImage = $this->config->get("MenuInfo");
                                                 $form->setTitle(TextFormat::DARK_PURPLE . $system);
                                                 $form->addLabel(TextFormat::GREEN . "System User: $user");
                                                 $form->addLabel(TextFormat::GREEN . "Level: $lvl");
                                                 $form->addLabel(TextFormat::GREEN . "XP: $sxp");
+                                                $form->addLabel(TextFormat::GREEN . "Skill Points: $sp");
                                                 $form->addLabel(TextFormat::GREEN . "Active Skill: $activeskill");
                                                 $skillList = $this->playerskills->get($user);
                                                 $form->sendToPlayer($player);
@@ -1181,136 +1331,136 @@ class Main extends PluginBase implements Listener {
                     $MenuShopImage = $this->config->get("MenuShop");
                     $world = $sender->getLevel()->getFolderName();
                     if ($world == $this->config->get("World")) {
-                         $form = new simpleForm(function (Player $player, $data) {
+                        $form = new simpleForm(function (Player $player, $data) {
                                     switch ($data) {
                                         case 0:
                                             $form = new customForm(function (Player $player, $data) {
                                                         if (!$data == null) {
                                                             $name = $data[0];
                                                             $form = new customForm(function (Player $player, $data) use ($name) {
-                                                        if (!$data == null) {
-                                                            $amount = $data[0];
-                                                            $this->addSXP($name, $amount);
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "Amount:", 10);
-                                            $form->sendToPlayer($player);
-                                            return;
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
-                                            $form->sendToPlayer($player);
-                                            return;
-                                                                case 1:
-                                                                    $form = new customForm(function (Player $player, $data) {
-                                                        if (!$data == null) {
-                                                            $name = $data[0];
-                                                            $form = new customForm(function (Player $player, $data) use ($name) {
-                                                        if (!$data == null) {
-                                                            $amount = $data[0];
-                                                            $this->lvlUp($name, $amount);
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "Amount:", 10);
-                                            $form->sendToPlayer($player);
-                                            return;
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
-                                            $form->sendToPlayer($player);
-                                                                    return;
-                                                                case 2:
-                                                                    $form = new customForm(function (Player $player, $data) {
-                                                        if (!$data == null) {
-                                                            $name = $data[0];
-                                                            $form = new customForm(function (Player $player, $data) use ($name) {
-                                                        if (!$data == null) {
-                                                            $amount = $data[0];
-                                                            $this->addSkillPoints($name, $amount);
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "Amount:", 10);
-                                            $form->sendToPlayer($player);
-                                            return;
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
-                                            $form->sendToPlayer($player);
-                                                                    return;
-                                                                case 3:
-                                                                    $form = new simpleForm(function (Player $player, $data) {
-                                                                    switch ($data) {
-                                                                        case 0:
-                                                                            $form = new customForm(function (Player $player, $data) {
-                                                        if (!$data == null) {
-                                                            $name = $data[0];
-                                                            $form = new customForm(function (Player $player, $data) use ($name) {
-                                                        if (!$data == null) {
-                                                            $system = $data[0];
-                                                            $this->setSystem($name, $system);
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "System:", "Berserker");
-                                            $form->sendToPlayer($player);
-                                            return;
-                                                        } else {
-                                                            return;
-                                                        }
-                                                    });
-                                            $MenuInfoImage = $this->config->get("MenuInfo");
-                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                            $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
-                                            $form->sendToPlayer($player);
+                                                                        if (!$data == null) {
+                                                                            $amount = $data[0];
+                                                                            $this->addSXP($name, $amount);
+                                                                        } else {
                                                                             return;
-                                                                        case 1:
+                                                                        }
+                                                                    });
+                                                            $MenuInfoImage = $this->config->get("MenuInfo");
+                                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                                            $form->addInput(TextFormat::AQUA . "Amount:", 10);
+                                                            $form->sendToPlayer($player);
+                                                            return;
+                                                        } else {
+                                                            return;
+                                                        }
+                                                    });
+                                            $MenuInfoImage = $this->config->get("MenuInfo");
+                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                            $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
+                                            $form->sendToPlayer($player);
+                                            return;
+                                        case 1:
+                                            $form = new customForm(function (Player $player, $data) {
+                                                        if (!$data == null) {
+                                                            $name = $data[0];
+                                                            $form = new customForm(function (Player $player, $data) use ($name) {
+                                                                        if (!$data == null) {
+                                                                            $amount = $data[0];
+                                                                            $this->lvlUp($name, $amount);
+                                                                        } else {
                                                                             return;
-                                                                    }
-                                                                });
-                                                        $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
-                                                        $form->setContent(TextFormat::BOLD . TextFormat::DARK_AQUA . "Warning, everything but saved skills will be lost and the selected skill will be reset.");
-                                                        $form->addButton(TextFormat::GREEN . "Continue");
-                                                        $form->addButton(TextFormat::RED . "Exit");
-                                                        $form->sendToPlayer($player);
-                                                                    return;
+                                                                        }
+                                                                    });
+                                                            $MenuInfoImage = $this->config->get("MenuInfo");
+                                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                                            $form->addInput(TextFormat::AQUA . "Amount:", 10);
+                                                            $form->sendToPlayer($player);
+                                                            return;
+                                                        } else {
+                                                            return;
+                                                        }
+                                                    });
+                                            $MenuInfoImage = $this->config->get("MenuInfo");
+                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                            $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
+                                            $form->sendToPlayer($player);
+                                            return;
+                                        case 2:
+                                            $form = new customForm(function (Player $player, $data) {
+                                                        if (!$data == null) {
+                                                            $name = $data[0];
+                                                            $form = new customForm(function (Player $player, $data) use ($name) {
+                                                                        if (!$data == null) {
+                                                                            $amount = $data[0];
+                                                                            $this->addSkillPoints($name, $amount);
+                                                                        } else {
+                                                                            return;
+                                                                        }
+                                                                    });
+                                                            $MenuInfoImage = $this->config->get("MenuInfo");
+                                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                                            $form->addInput(TextFormat::AQUA . "Amount:", 10);
+                                                            $form->sendToPlayer($player);
+                                                            return;
+                                                        } else {
+                                                            return;
+                                                        }
+                                                    });
+                                            $MenuInfoImage = $this->config->get("MenuInfo");
+                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                            $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
+                                            $form->sendToPlayer($player);
+                                            return;
+                                        case 3:
+                                            $form = new simpleForm(function (Player $player, $data) {
+                                                        switch ($data) {
+                                                            case 0:
+                                                                $form = new customForm(function (Player $player, $data) {
+                                                                            if (!$data == null) {
+                                                                                $name = $data[0];
+                                                                                $form = new customForm(function (Player $player, $data) use ($name) {
+                                                                                            if (!$data == null) {
+                                                                                                $system = $data[0];
+                                                                                                $this->setSystem($name, $system);
+                                                                                            } else {
+                                                                                                return;
+                                                                                            }
+                                                                                        });
+                                                                                $MenuInfoImage = $this->config->get("MenuInfo");
+                                                                                $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                                                                $form->addInput(TextFormat::AQUA . "System:", "Berserker");
+                                                                                $form->sendToPlayer($player);
+                                                                                return;
+                                                                            } else {
+                                                                                return;
+                                                                            }
+                                                                        });
+                                                                $MenuInfoImage = $this->config->get("MenuInfo");
+                                                                $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                                                $form->addInput(TextFormat::AQUA . "Name:", "MrDevCat");
+                                                                $form->sendToPlayer($player);
+                                                                return;
+                                                            case 1:
+                                                                return;
+                                                        }
+                                                    });
+                                            $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
+                                            $form->setContent(TextFormat::BOLD . TextFormat::DARK_AQUA . "Warning, everything but saved skills will be lost and the selected skill will be reset.");
+                                            $form->addButton(TextFormat::GREEN . "Continue");
+                                            $form->addButton(TextFormat::RED . "Exit");
+                                            $form->sendToPlayer($player);
+                                            return;
                                         case 4:
                                             return;
-                             }
+                                    }
                                 });
                         $system = $this->getSystem($user);
                         $MenuInfoImage = $this->config->get("MenuInfo");
-                        $form->setTitle(TextFormat::DARK_PURPLE .  TextFormat::BOLD . "Admin");
+                        $form->setTitle(TextFormat::DARK_PURPLE . TextFormat::BOLD . "Admin");
                         $form->setContent(TextFormat::DARK_PURPLE . "");
                         $form->addButton(TextFormat::GOLD . "Add SXP");
                         $form->addButton(TextFormat::GOLD . "Add level");
-                        $form->addButton(TextFormat::GOLD . "Skill points");
+                        $form->addButton(TextFormat::GOLD . "A ddSkill points");
                         $form->addButton(TextFormat::GOLD . "Set system");
                         $form->addButton(TextFormat::RED . "Back");
                         $form->sendToPlayer($sender);
