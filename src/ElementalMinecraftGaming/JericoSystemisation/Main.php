@@ -9,7 +9,7 @@ use pocketmine\plugin\PluginBase;
 use pocketmine\command\CommandSender;
 use ElementalMinecraftGaming\JericoSystemisation\SXPInterval;
 use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\SimpleForm;
-use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\customForm;
+use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\CustomForm;
 use revivalpmmp\pureentities\entity\monster\Monster;
 //use jasonwynn10\VanillaEntityAI\entity\InventoryHolder;
 use pocketmine\event\player\PlayerJoinEvent;
@@ -52,7 +52,6 @@ class Main extends PluginBase implements Listener {
         $this->Interval = new Config($this->getDataFolder() . "SXPInterval.yml", Config::YAML, array("SXPInterval" => 60));
         $this->config = new Config($this->getDataFolder() . "config.yml", Config::YAML);
         $this->playerskills = new Config($this->getDataFolder() . "PlayerSkills.yml", Config::YAML);
-        $this->MonsterConfig = new Config($this->getDataFolder() . "MonsterConfig.yml", Config::YAML);
         $this->getScheduler()->scheduleRepeatingTask(new SXPInterval($this), $this->Interval->get("SXPInterval") * 20);
         $this->getServer()->getPluginManager()->registerEvents($this, $this);
     }
@@ -182,7 +181,6 @@ class Main extends PluginBase implements Listener {
     }
 
     public function addSXP($user, $amount) {
-        $player = $this->getPlayer($user);
         $lvl = $this->getLvl($user);
         $sxp = $this->getSxp($user);
         $skillpoints = $this->getSkillPoints($user);
@@ -517,7 +515,7 @@ class Main extends PluginBase implements Listener {
     }
 
     public function setSkillForm($p, $user) {
-        $form = new customForm(function (Player $player, $data) {
+        $form = new CustomForm(function (Player $player, $data) {
                     $user = $player->getName();
                     $skills = $this->playerskills->get($user);
                     $skillOne = $skills[0];
@@ -555,14 +553,14 @@ class Main extends PluginBase implements Listener {
         $MenuShopImage = $this->config->get("MenuShop");
         $system = $this->getSystem($user);
         if ($system == "MageSystem") {
-            $form = new simpleForm(function (Player $player, $data) {
+            $form = new SimpleForm(function (Player $player, $data) {
                         switch ($data) {
                             case 0:
-                                $form = new simpleForm(function (Player $player, $data) {
+                                $form = new SimpleForm(function (Player $player, $data) {
                                             switch ($data) {
                                                 case 0:
                                                     if ($this->getSkillPoints($player->getName()) >= $this->config->get("FlameStar")) {
-                                                        $form = new simpleForm(function (Player $player, $data) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
                                                                     switch ($data) {
                                                                         case 0:
                                                                             $user = $player->getName();
@@ -643,11 +641,11 @@ class Main extends PluginBase implements Listener {
                                 $form->sendToPlayer($player);
                                 return;
                             case 2:
-                                $form = new simpleForm(function (Player $player, $data) {
+                                $form = new SimpleForm(function (Player $player, $data) {
                                             switch ($data) {
                                                 case 0:
                                                     if ($this->getSkillPoints($player->getName()) >= $this->config->get("FlameCross")) {
-                                                        $form = new simpleForm(function (Player $player, $data) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
                                                                     switch ($data) {
                                                                         case 0:
                                                                             $user = $player->getName();
@@ -738,14 +736,14 @@ class Main extends PluginBase implements Listener {
             $form->sendToPlayer($p);
             return true;
         } elseif ($system == "SpellBreakerSystem") {
-            $form = new simpleForm(function (Player $player, $data) {
+            $form = new SimpleForm(function (Player $player, $data) {
                         switch ($data) {
                             case 0:
-                                $form = new simpleForm(function (Player $player, $data) {
+                                $form = new SimpleForm(function (Player $player, $data) {
                                             switch ($data) {
                                                 case 0:
                                                     if ($this->getSkillPoints($player->getName()) >= $this->config->get("FireBreak")) {
-                                                        $form = new simpleForm(function (Player $player, $data) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
                                                                     switch ($data) {
                                                                         case 0:
                                                                             $user = $player->getName();
@@ -834,14 +832,14 @@ class Main extends PluginBase implements Listener {
             $form->addButton("FireBreak", 1, $MenuInfoImage);
             $form->sendToPlayer($p);
         } elseif ($system == "HealerSystem") {
-            $form = new simpleForm(function (Player $player, $data) {
+            $form = new SimpleForm(function (Player $player, $data) {
                         switch ($data) {
                             case 0:
-                                $form = new simpleForm(function (Player $player, $data) {
+                                $form = new SimpleForm(function (Player $player, $data) {
                                             switch ($data) {
                                                 case 0:
                                                     if ($this->getSkillPoints($player->getName()) >= $this->config->get("Heal")) {
-                                                        $form = new simpleForm(function (Player $player, $data) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
                                                                     switch ($data) {
                                                                         case 0:
                                                                             $user = $player->getName();
@@ -930,14 +928,14 @@ class Main extends PluginBase implements Listener {
             $form->addButton("Heal", 1, $MenuInfoImage);
             $form->sendToPlayer($p);
         } elseif ($system == "BerserkerSystem") {
-            $form = new simpleForm(function (Player $player, $data) {
+            $form = new SimpleForm(function (Player $player, $data) {
                         switch ($data) {
                             case 0:
-                                $form = new simpleForm(function (Player $player, $data) {
+                                $form = new SimpleForm(function (Player $player, $data) {
                                             switch ($data) {
                                                 case 0:
                                                     if ($this->getSkillPoints($player->getName()) >= $this->config->get("DoubleDamage")) {
-                                                        $form = new simpleForm(function (Player $player, $data) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
                                                                     switch ($data) {
                                                                         case 0:
                                                                             $user = $player->getName();
@@ -1049,7 +1047,7 @@ class Main extends PluginBase implements Listener {
                             $form = new SimpleForm(function (Player $player, $data) {
                                         switch ($data) {
                                             case 0:
-                                                $form = new customForm(function (Player $player, $data) {
+                                                $form = new CustomForm(function (Player $player, $data) {
                                                             switch ($data) {
                                                                 case 0:
                                                                     return;
@@ -1072,7 +1070,7 @@ class Main extends PluginBase implements Listener {
                                                 $form->sendToPlayer($player);
                                                 return;
                                             case 1:
-                                                $form = new simpleForm(function (Player $player, $data) {
+                                                $form = new SimpleForm(function (Player $player, $data) {
                                                             switch ($data) {
                                                                 case 1:
                                                                     return;
@@ -1115,7 +1113,7 @@ class Main extends PluginBase implements Listener {
                             $form = new SimpleForm(function (Player $player, $data) {
                                         switch ($data) {
                                             case 0:
-                                                $form = new customForm(function (Player $player, $data) {
+                                                $form = new CustomForm(function (Player $player, $data) {
                                                             switch ($data) {
                                                                 case 0:
                                                                     return;
@@ -1138,7 +1136,7 @@ class Main extends PluginBase implements Listener {
                                                 $form->sendToPlayer($player);
                                                 return;
                                             case 1:
-                                                $form = new simpleForm(function (Player $player, $data) {
+                                                $form = new SimpleForm(function (Player $player, $data) {
                                                             switch ($data) {
                                                                 case 1:
                                                                     return;
@@ -1180,7 +1178,7 @@ class Main extends PluginBase implements Listener {
                             $form = new SimpleForm(function (Player $player, $data) {
                                         switch ($data) {
                                             case 0:
-                                                $form = new customForm(function (Player $player, $data) {
+                                                $form = new CustomForm(function (Player $player, $data) {
                                                             switch ($data) {
                                                                 case 0:
                                                                     return;
@@ -1203,7 +1201,7 @@ class Main extends PluginBase implements Listener {
                                                 $form->sendToPlayer($player);
                                                 return;
                                             case 1:
-                                                $form = new simpleForm(function (Player $player, $data) {
+                                                $form = new SimpleForm(function (Player $player, $data) {
                                                             switch ($data) {
                                                                 case 1:
                                                                     return;
@@ -1245,7 +1243,7 @@ class Main extends PluginBase implements Listener {
                             $form = new SimpleForm(function (Player $player, $data) {
                                         switch ($data) {
                                             case 0:
-                                                $form = new customForm(function (Player $player, $data) {
+                                                $form = new CustomForm(function (Player $player, $data) {
                                                             switch ($data) {
                                                                 case 0:
                                                                     return;
@@ -1333,13 +1331,13 @@ class Main extends PluginBase implements Listener {
                     $MenuShopImage = $this->config->get("MenuShop");
                     $world = $sender->getLevel()->getFolderName();
                     if ($world == $this->config->get("World")) {
-                        $form = new simpleForm(function (Player $player, $data) {
+                        $form = new SimpleForm(function (Player $player, $data) {
                                     switch ($data) {
                                         case 0:
-                                            $form = new customForm(function (Player $player, $data) {
+                                            $form = new CustomForm(function (Player $player, $data) {
                                                         if (!$data == null) {
                                                             $name = $data[0];
-                                                            $form = new customForm(function (Player $player, $data) use ($name) {
+                                                            $form = new CustomForm(function (Player $player, $data) use ($name) {
                                                                         if (!$data == null) {
                                                                             $amount = $data[0];
                                                                             $this->addSXP($name, $amount);
@@ -1362,10 +1360,10 @@ class Main extends PluginBase implements Listener {
                                             $form->sendToPlayer($player);
                                             return;
                                         case 1:
-                                            $form = new customForm(function (Player $player, $data) {
+                                            $form = new CustomForm(function (Player $player, $data) {
                                                         if (!$data == null) {
                                                             $name = $data[0];
-                                                            $form = new customForm(function (Player $player, $data) use ($name) {
+                                                            $form = new CustomForm(function (Player $player, $data) use ($name) {
                                                                         if (!$data == null) {
                                                                             $amount = $data[0];
                                                                             $this->lvlUp($name, $amount);
@@ -1388,10 +1386,10 @@ class Main extends PluginBase implements Listener {
                                             $form->sendToPlayer($player);
                                             return;
                                         case 2:
-                                            $form = new customForm(function (Player $player, $data) {
+                                            $form = new CustomForm(function (Player $player, $data) {
                                                         if (!$data == null) {
                                                             $name = $data[0];
-                                                            $form = new customForm(function (Player $player, $data) use ($name) {
+                                                            $form = new CustomForm(function (Player $player, $data) use ($name) {
                                                                         if (!$data == null) {
                                                                             $amount = $data[0];
                                                                             $this->addSkillPoints($name, $amount);
@@ -1414,13 +1412,13 @@ class Main extends PluginBase implements Listener {
                                             $form->sendToPlayer($player);
                                             return;
                                         case 3:
-                                            $form = new simpleForm(function (Player $player, $data) {
+                                            $form = new SimpleForm(function (Player $player, $data) {
                                                         switch ($data) {
                                                             case 0:
-                                                                $form = new customForm(function (Player $player, $data) {
+                                                                $form = new CustomForm(function (Player $player, $data) {
                                                                             if (!$data == null) {
                                                                                 $name = $data[0];
-                                                                                $form = new customForm(function (Player $player, $data) use ($name) {
+                                                                                $form = new CustomForm(function (Player $player, $data) use ($name) {
                                                                                             if (!$data == null) {
                                                                                                 $system = $data[0];
                                                                                                 $this->setSystem($name, $system);
