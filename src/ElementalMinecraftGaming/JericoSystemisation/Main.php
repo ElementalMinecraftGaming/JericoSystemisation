@@ -3,6 +3,7 @@
 namespace ElementalMinecraftGaming\JericoSystemisation;
 
 use pocketmine\Player;
+use pocketmine\Entity;
 use pocketmine\utils\TextFormat;
 use pocketmine\utils\Config;
 use pocketmine\plugin\PluginBase;
@@ -337,7 +338,7 @@ class Main extends PluginBase implements Listener {
                         }
                     }
                 }
-            } elseif (!$attacker instanceof Player && $attacked instanceof Player) {
+            } elseif ($attacked instanceof Player) {
                 $world = $attacked->getLevel()->getFolderName();
                 if ($world == $this->config->get("World")) {
                     $entityTag = $attacker->getNameTag();
