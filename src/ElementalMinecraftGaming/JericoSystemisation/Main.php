@@ -31,6 +31,8 @@ class Main extends PluginBase implements Listener {
     public $Interval;
     public $plugin;
     public $config;
+    public $playerskills;
+    public $MonsterConfig;
 
     public function onEnable() {
         @mkdir($this->getDataFolder());
