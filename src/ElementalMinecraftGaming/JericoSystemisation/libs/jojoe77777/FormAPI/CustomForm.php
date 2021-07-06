@@ -2,20 +2,14 @@
 
 declare(strict_types = 1);
 
-namespace ElementalMinecraftGaming\JericoSystemisation;
+namespace ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI;
 
 class CustomForm extends Form {
-    
-    const IMAGE_TYPE_PATH = 0;
-    const IMAGE_TYPE_URL = 1;
-
-    /** @var string */
-    private $content = "";
 
     private $labelMap = [];
 
     /**
-     * @param callable $callable
+     * @param callable|null $callable
      */
     public function __construct(?callable $callable) {
         parent::__construct($callable);
@@ -119,7 +113,7 @@ class CustomForm extends Form {
 
     /**
      * @param string $text
-     * @param string $pla1ceholder
+     * @param string $placeholder
      * @param string $default
      * @param string|null $label
      */

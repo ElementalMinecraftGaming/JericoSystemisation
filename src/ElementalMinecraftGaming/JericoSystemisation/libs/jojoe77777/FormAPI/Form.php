@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace ElementalMinecraftGaming\JericoSystemisation;
+namespace ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI;
 
 use pocketmine\form\Form as IForm;
 use pocketmine\Player;
@@ -11,11 +11,11 @@ abstract class Form implements IForm{
 
     /** @var array */
     protected $data = [];
-    /** @var callable */
+    /** @var callable|null */
     private $callable;
 
     /**
-     * @param callable $callable
+     * @param callable|null $callable
      */
     public function __construct(?callable $callable) {
         $this->callable = $callable;

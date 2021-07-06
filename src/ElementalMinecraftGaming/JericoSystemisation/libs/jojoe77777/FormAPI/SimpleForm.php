@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace ElementalMinecraftGaming\JericoSystemisation;
+namespace ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI;
 
 class SimpleForm extends Form {
 
@@ -15,13 +15,14 @@ class SimpleForm extends Form {
     private $labelMap = [];
 
     /**
-     * @param callable $callable
+     * @param callable|null $callable
      */
     public function __construct(?callable $callable) {
         parent::__construct($callable);
         $this->data["type"] = "form";
         $this->data["title"] = "";
         $this->data["content"] = $this->content;
+        $this->data["buttons"] = [];
     }
 
     public function processData(&$data) : void {

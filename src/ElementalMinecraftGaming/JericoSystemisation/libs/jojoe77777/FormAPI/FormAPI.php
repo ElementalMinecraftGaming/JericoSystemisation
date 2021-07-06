@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace ElementalMinecraftGaming\JericoSystemisation;
+namespace ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI;
 
 use pocketmine\plugin\PluginBase;
 
@@ -11,10 +11,10 @@ class FormAPI extends PluginBase{
     /**
      * @deprecated
      *
-     * @param callable $function
+     * @param callable|null $function
      * @return CustomForm
      */
-    public function createCustomForm(callable $function = null) : CustomForm {
+    public function createCustomForm(?callable $function = null) : CustomForm {
         return new CustomForm($function);
     }
 
@@ -24,7 +24,7 @@ class FormAPI extends PluginBase{
      * @param callable|null $function
      * @return SimpleForm
      */
-    public function createSimpleForm(callable $function = null) : SimpleForm {
+    public function createSimpleForm(?callable $function = null) : SimpleForm {
         return new SimpleForm($function);
     }
 
@@ -34,7 +34,7 @@ class FormAPI extends PluginBase{
      * @param callable|null $function
      * @return ModalForm
      */
-    public function createModalForm(callable $function = null) : ModalForm {
+    public function createModalForm(?callable $function = null) : ModalForm {
         return new ModalForm($function);
     }
 }

@@ -2,7 +2,7 @@
 
 declare(strict_types = 1);
 
-namespace ElementalMinecraftGaming\JericoSystemisation;
+namespace ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI;
 
 class ModalForm extends Form {
 
