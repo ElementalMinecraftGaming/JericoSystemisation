@@ -11,6 +11,7 @@ use pocketmine\command\CommandSender;
 use ElementalMinecraftGaming\JericoSystemisation\SXPInterval;
 use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\SimpleForm;
 use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\CustomForm;
+use revivalpmmp\pureentities\entity\monster\Monster;
 //use jasonwynn10\VanillaEntityAI\entity\InventoryHolder;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerDeathEvent;
@@ -355,6 +356,7 @@ class Main extends PluginBase implements Listener {
                                 $attacked->setOnFire(5);
                             } elseif ($monsterSkill == "DoubleDamage") {
                                 if ($this->getServer()->getPluginManager()->getPlugin("PureEntitiesX")) {
+                                    if ($attacker instanceof Monster) {
                                     $item = $attacker->getDamage();
                                     $event->setModifier($item * 2, 3);
                                     /* } elseif ($this->getServer()->getPluginManager()->getPlugin("VanillaEntitiesAI")) {
@@ -362,6 +364,7 @@ class Main extends PluginBase implements Listener {
                                       $item = $attacker->getMainHand();
                                       $event->setModifier($item->getAttackPoints() * 2, 3);
                                       } */
+                                    }
                                 }
                             }
                         }
