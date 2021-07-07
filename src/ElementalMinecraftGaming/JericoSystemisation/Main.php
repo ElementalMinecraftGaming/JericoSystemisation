@@ -1457,7 +1457,7 @@ class Main extends PluginBase implements Listener {
                         $form->setContent(TextFormat::DARK_PURPLE . "");
                         $form->addButton(TextFormat::GOLD . "Add SXP");
                         $form->addButton(TextFormat::GOLD . "Add level");
-                        $form->addButton(TextFormat::GOLD . "A ddSkill points");
+                        $form->addButton(TextFormat::GOLD . "Add Skill points");
                         $form->addButton(TextFormat::GOLD . "Set system");
                         $form->addButton(TextFormat::RED . "Back");
                         $form->sendToPlayer($sender);
