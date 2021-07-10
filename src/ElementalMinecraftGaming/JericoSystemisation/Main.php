@@ -9,12 +9,19 @@ use pocketmine\utils\Config;
 use pocketmine\plugin\PluginBase;
 use pocketmine\command\CommandSender;
 use ElementalMinecraftGaming\JericoSystemisation\SXPInterval;
+use pocketmine\nbt\tag\CompoundTag;
+use pocketmine\nbt\tag\ListTag;
+use pocketmine\nbt\tag\DoubleTag;
+use pocketmine\nbt\tag\FloatTag;
 use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\SimpleForm;
 use ElementalMinecraftGaming\JericoSystemisation\libs\jojoe77777\FormAPI\CustomForm;
 use revivalpmmp\pureentities\entity\monster\Monster;
+use revivalpmmp\pureentities\PureEntities;
 //use jasonwynn10\VanillaEntityAI\entity\InventoryHolder;
 use pocketmine\event\player\PlayerJoinEvent;
 use pocketmine\event\player\PlayerDeathEvent;
+use pocketmine\level\particle\HeartParticle;
+use pocketmine\level\particle\SporeParticle;
 use pocketmine\level\{Level,Position};
 use pocketmine\block\Block;
 use pocketmine\math\Vector3;
@@ -23,6 +30,8 @@ use pocketmine\event\entity\EntityDeathEvent;
 use pocketmine\event\entity\EntityDamageEvent;
 use pocketmine\event\player\PlayerToggleSneakEvent;
 use pocketmine\item;
+use pocketmine\entity\EffectInstance;
+use pocketmine\entity\Effect;
 use pocketmine\command\Command;
 use pocketmine\event\Listener;
 
@@ -165,13 +174,13 @@ class Main extends PluginBase implements Listener {
                 if ($sxp >= $max) {
                     while ($sxp >= $max) {
                         $this->lvlUp($user, 1);
-                        $addsxp = $sxp - $max;
+                        $takesxp = $sxp - $max;
                         $system = $this->getSystem($user);
                         $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
                         $del->bindValue(":user", $user);
                         $del->bindValue(":system", $system);
                         $del->bindValue(":lvl", $lvl);
-                        $del->bindValue(":sxp", $addsxp);
+                        $del->bindValue(":sxp", $takesxp);
                         $del->bindValue(":skill", $skill);
                         $del->bindValue(":skillpoints", $skillpoints);
                         $start = $del->execute();
@@ -200,13 +209,13 @@ class Main extends PluginBase implements Listener {
         if ($sxp >= $max) {
             while ($sxp >= $max) {
                 $this->lvlUp($user, 1);
-                $addsxp = $sxp - $max;
+                $takesxp = $sxp - $max;
                 $system = $this->getSystem($user);
                 $del = $this->db->prepare("INSERT OR REPLACE INTO USystem (user, system, lvl, sxp, skill, skillpoints) VALUES (:user, :system, :lvl, :sxp, :skill, :skillpoints);");
                 $del->bindValue(":user", $user);
                 $del->bindValue(":system", $system);
                 $del->bindValue(":lvl", $lvl);
-                $del->bindValue(":sxp", $addsxp);
+                $del->bindValue(":sxp", $takesxp);
                 $del->bindValue(":skill", $skill);
                 $del->bindValue(":skillpoints", $skillpoints);
                 $start = $del->execute();
@@ -357,13 +366,13 @@ class Main extends PluginBase implements Listener {
                             } elseif ($monsterSkill == "DoubleDamage") {
                                 if ($this->getServer()->getPluginManager()->getPlugin("PureEntitiesX")) {
                                     if ($attacker instanceof Monster) {
-                                    $item = $attacker->getDamage();
-                                    $event->setModifier($item * 2, 3);
-                                    /* } elseif ($this->getServer()->getPluginManager()->getPlugin("VanillaEntitiesAI")) {
-                                      if ($attacker instanceof InventoryHolder) {
-                                      $item = $attacker->getMainHand();
-                                      $event->setModifier($item->getAttackPoints() * 2, 3);
-                                      } */
+                                        $item = $attacker->getDamage();
+                                        $event->setModifier($item * 2, 3);
+                                        /* } elseif ($this->getServer()->getPluginManager()->getPlugin("VanillaEntitiesAI")) {
+                                          if ($attacker instanceof InventoryHolder) {
+                                          $item = $attacker->getMainHand();
+                                          $event->setModifier($item->getAttackPoints() * 2, 3);
+                                          } */
                                     }
                                 }
                             }
@@ -376,6 +385,26 @@ class Main extends PluginBase implements Listener {
 
     public function onPlayerCrouch(PlayerToggleSneakEvent $ev) {
         $p = $ev->getPlayer();
+        $yaw = $p->getYaw();
+        $pitch = $p->getPitch();
+
+        $nbt = new CompoundTag("", [
+            "Pos" => new ListTag("Pos", [
+                new DoubleTag("", $p->getX()),
+                new DoubleTag("", $p->getY() + 1),
+                new DoubleTag("", $p->getZ()),
+                    ]),
+            "Motion" => new ListTag("Motion", [
+                new DoubleTag("", -sin($yaw / 180 * M_PI) * cos($pitch / 180 * M_PI)),
+                new DoubleTag("", -sin($pitch / 180 * M_PI)),
+                new DoubleTag("", cos($yaw / 180 * M_PI) * cos($pitch / 180 * M_PI)),
+                    ]),
+            "Rotation" => new ListTag("Rotation", [
+                new FloatTag("", $yaw),
+                new FloatTag("", $pitch),
+                    ])
+        ]);
+        $shootingArrow = Entity::createEntity("Arrow", $p->getLevel(), $nbt);
         $user = $p->getName();
         $system = $this->getSystem($user);
         $world = $p->getLevel()->getFolderName();
@@ -383,12 +412,9 @@ class Main extends PluginBase implements Listener {
             if ($system == "MageSystem" || $system == "DemonSystem") {
                 $activeskill = $this->getSkill($user);
                 if ($activeskill == "FlameStar" || $activeskill == "Mage") {
-                    $px = $p->getX();
-                    $py = $p->getY();
-                    $pz = $p->getZ();
-                    $x = round($px);
-                    $y = round($py);
-                    $z = round($pz);
+                    $x = $p->getX();
+                    $y = $p->getY();
+                    $z = $p->getZ();
                     $xplus = $x + 1;
                     $xminus = $x - 1;
                     $zplus = $z + 1;
@@ -439,12 +465,9 @@ class Main extends PluginBase implements Listener {
                         $zminus = $zminus - 1;
                     }
                 } elseif ($activeskill == "FireCross") {
-                    $px = $p->getX();
-                    $py = $p->getY();
-                    $pz = $p->getZ();
-                    $x = round($px);
-                    $y = round($py);
-                    $z = round($pz);
+                    $x = $p->getX();
+                    $y = $p->getY();
+                    $z = $p->getZ();
                     $xplus = $x + 1;
                     $xminus = $x - 1;
                     $zplus = $z + 1;
@@ -475,6 +498,170 @@ class Main extends PluginBase implements Listener {
                         $zplus = $zplus + 1;
                         $zminus = $zminus - 1;
                     }
+                } elseif ($activeskill == "MoltenStar") {
+                    $x = $p->getX();
+                    $y = $p->getY();
+                    $z = $p->getZ();
+                    $xplus = $x + 1;
+                    $xminus = $x - 1;
+                    $zplus = $z + 1;
+                    $zminus = $z - 1;
+                    $world = $ev->getPlayer()->getLevel();
+                    $lvl = $this->getLvl($user);
+                    if ($lvl < 10) {
+                    while ($xplus < $x + $lvl) {
+                        $block = Block::get(Block::LAVA);
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $zplus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zplus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $zminus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zminus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $zplus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $zplus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $zminus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $zminus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $zminus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $zminus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $zplus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $zplus), $block, true, true);
+                        }
+                        $xplus = $xplus + 1;
+                        $xminus = $xminus - 1;
+                        $zplus = $zplus + 1;
+                        $zminus = $zminus - 1;
+                    }
+                    } else {
+                        $maxlvl = 10;
+                        while ($xplus < $x + $maxlvl) {
+                        $block = Block::get(Block::LAVA);
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $zplus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zplus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $zminus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zminus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $zplus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $zplus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $zminus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $zminus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $zminus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $zminus), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xminus, $y, $zplus))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $zplus), $block, true, true);
+                        }
+                        $xplus = $xplus + 1;
+                        $xminus = $xminus - 1;
+                        $zplus = $zplus + 1;
+                        $zminus = $zminus - 1;
+                    }
+                    }
+                } elseif ($activeskill == "MoltenCross") {
+                    $x = $p->getX();
+                    $y = $p->getY();
+                    $z = $p->getZ();
+                    $xplus = $x + 1;
+                    $xminus = $x - 1;
+                    $zplus = $z + 1;
+                    $zminus = $z - 1;
+                    $world = $ev->getPlayer()->getLevel();
+                    $lvl = $this->getLvl($user);
+                    if ($lvl < 10) {
+                    while ($xplus < $x + $lvl) {
+                        $block = Block::get(Block::LAVA);
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $z), $block, true, true);
+                        }
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $z), $block, true, true);
+                        }
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zplus), $block, true, true);
+                        }
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zminus), $block, true, true);
+                        }
+                        $xplus = $xplus + 1;
+                        $xminus = $xminus - 1;
+                        $zplus = $zplus + 1;
+                        $zminus = $zminus - 1;
+                    }
+                    } else {
+                        $maxlvl = 10;
+                        while ($xplus < $x + $maxlvl) {
+                        $block = Block::get(Block::LAVA);
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($x, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $z), $block, true, true);
+                        }
+                        $pos = $ev->getPlayer()->getLevel()->getBlock(new Vector3($xplus, $y, $z))->getId();
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xplus, $y, $z), $block, true, true);
+                        }
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($xminus, $y, $z), $block, true, true);
+                        }
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zplus), $block, true, true);
+                        }
+                        if ($pos == "Air") {
+                            $world->setBlock(new Vector3($x, $y, $zminus), $block, true, true);
+                        }
+                        $xplus = $xplus + 1;
+                        $xminus = $xminus - 1;
+                        $zplus = $zplus + 1;
+                        $zminus = $zminus - 1;
+                    }
+                    }
+                } elseif ($activeskill == "ArrowShot" || $activeskill == "Mage") {
+                    $shootingArrow->spawnTo($p);
                 }
             } elseif ($system == "SpellBreakerSystem") {
                 $activeskill = $this->getSkill($user);
@@ -486,6 +673,52 @@ class Main extends PluginBase implements Listener {
                 if ($activeskill == "Heal") {
                     $currentHealth = $p->getHealth();
                     $p->setHealth($currentHealth + 1);
+                } elseif ($activeskill == "BigHeal") {
+                    $currentHealth = $p->getHealth();
+                    $p->setHealth($currentHealth + 4);
+                } elseif ($activeskill == "MaxHeal") {
+                    $maxHealth = $p->getMaxHealth();
+                    $p->setHealth($maxHealth);
+                } elseif ($activeskill == "BlessedHeal") {
+                    foreach ($p->getLevel()->getNearbyEntities($p->getBoundingBox()->expandedCopy(5, 5, 5)) as $entity) {
+                        if ($entity instanceof Player) {
+                            $x = $entity->getX();
+                            $y = $entity->getY();
+                            $z = $entity->getZ();
+                            $entity->removeAllEffects();
+                            $maxHealth = $entity->getMaxHealth();
+                            $entity->setHealth($maxHealth);
+                            $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::REGENERATION), 20 * 5, 2, false));
+                            $entity->getLevel()->addParticle(new HeartParticle(new Vector3($x, $y + 1, $z + 1)));
+                        }
+                    }
+                } elseif ($activeskill == "Buff") {
+                    foreach ($p->getLevel()->getNearbyEntities($p->getBoundingBox()->expandedCopy(5, 5, 5)) as $entity) {
+                        if ($entity instanceof Player) {
+                            $x = $entity->getX();
+                            $y = $entity->getY();
+                            $z = $entity->getZ();
+                            $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::REGENERATION), 20 * 5, 3, false));
+                            $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::RESISTANCE), 20 * 5, 2, false));
+                            $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::FIRE_RESISTANCE), 20 * 5, 1, false));
+                            $entity->getLevel()->addParticle(new HeartParticle(new Vector3($x, $y + 1, $z + 1)));
+                        }
+                    }
+                } elseif ($activeskill == "Debuff") {
+                    foreach ($p->getLevel()->getNearbyEntities($p->getBoundingBox()->expandedCopy(5, 5, 5)) as $entity) {
+                        if ($entity->getId() !== $p->getId()) {
+                            if ($entity instanceof Player) {
+                                $x = $entity->getX();
+                                $y = $entity->getY();
+                                $z = $entity->getZ();
+                                $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::POISON), 20 * 5, 1, false));
+                                $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::BLINDNESS), 20 * 5, 2, false));
+                                $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::WEAKNESS), 20 * 5, 1, false));
+                                $entity->addEffect(new EffectInstance(Effect::getEffect(Effect::NAUSEA), 20 * 5, 1, false));
+                                $entity->getLevel()->addParticle(new SporeParticle(new Vector3($x, $y + 1, $z + 1)));
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -637,7 +870,7 @@ class Main extends PluginBase implements Listener {
                                 $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
                                 $form->sendToPlayer($player);
                                 return;
-                            case 2:
+                            case 1:
                                 $form = new SimpleForm(function (Player $player, $data) {
                                             switch ($data) {
                                                 case 0:
@@ -722,14 +955,367 @@ class Main extends PluginBase implements Listener {
                                 $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
                                 $form->sendToPlayer($player);
                                 return;
+
+                            case 2:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("MoltenStar")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MoltenStar");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "MoltenStar";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MoltenStar");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillTwo = "MoltenStar";
+                                                                            $skillOne = $cskill[0];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MoltenStar");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillThree = "MoltenStar";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillOne = $cskill[0];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $system = $this->getSystem($user);
+                                $price = $this->config->get("MoltenStar");
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Creates a star of molten lava on the ground from where you are standing when you crouch. (Will not break blocks that are flame proof and won't appear at half blocks)\nBecomes stronger the higher your level.");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+
+                            case 3:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("MoltenCross")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MoltenCross");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "MoltenCross";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MoltenCross");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillTwo = "MoltenCross";
+                                                                            $skillOne = $cskill[0];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MoltenCross");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillThree = "MoltenCross";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillOne = $cskill[0];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $system = $this->getSystem($user);
+                                $price = $this->config->get("MoltenCross");
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Creates a cross of molten lava on the ground from where you are standing when you crouch. (Will not break blocks that are flame proof and won't appear at half blocks)\nBecomes stronger the higher your level.");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+
+                            case 4:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("ArrowShot")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("ArrowShot");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "ArrowShot";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("ArrowShot");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillTwo = "ArrowShot";
+                                                                            $skillOne = $cskill[0];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("ArrowShot");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillThree = "ArrowShot";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillOne = $cskill[0];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $system = $this->getSystem($user);
+                                $price = $this->config->get("ArrowShot");
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Shoots arrows in the direction that you are looking.");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+
+                            case 5:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("Summon")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Summon");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Summon";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Summon");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillTwo = "Summon";
+                                                                            $skillOne = $cskill[0];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Summon");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillThree = "Summon";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillOne = $cskill[0];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $system = $this->getSystem($user);
+                                $price = $this->config->get("Summon");
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Can summon skeletons, zombies, vindicators and snow golems. (can be used for a quick escape or for offense but the mobs are not loyal)");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
                         }
                     });
             $system = $this->getSystem($user);
-            $MenuInfoImage = $this->config->get("MenuInfo");
+            $FlameStarImage = $this->config->get("FlameStarImage");
+            $FlameCrossImage = $this->config->get("FlameCrossImage");
+            $MoltenStarImage = $this->config->get("MoltenStarImage");
+            $MoltenCrossImage = $this->config->get("MoltenCrossImage");
+            $ArrowShotImage = $this->config->get("ArrowShotImage");
+            $SummonImage = $this->config->get("SummonImage");
             $form->setTitle(TextFormat::DARK_PURPLE . $system);
             $form->setContent("");
-            $form->addButton("FlameStar", 1, $MenuInfoImage);
-            $form->addButton("FlameCross", 1, $MenuInfoImage);
+            $form->addButton("FlameStar", 1, $FlameStarImage);
+            $form->addButton("FlameCross", 1, $FlameCrossImage);
+            $form->addButton("MoltenStar", 1, $MoltenStarImage);
+            $form->addButton("MoltenCross", 1, $MoltenCrossImage);
+            $form->addButton("ArrowShot", 1, $ArrowShotImage);
+            $form->addButton("Summon", 1, $SummonImage);
             $form->sendToPlayer($p);
             return true;
         } elseif ($system == "SpellBreakerSystem") {
@@ -823,10 +1409,10 @@ class Main extends PluginBase implements Listener {
                         }
                     });
             $system = $this->getSystem($user);
-            $MenuInfoImage = $this->config->get("MenuInfo");
+            $FireBreakImage = $this->config->get("FireBreakImage");
             $form->setTitle(TextFormat::DARK_PURPLE . $system);
             $form->setContent("");
-            $form->addButton("FireBreak", 1, $MenuInfoImage);
+            $form->addButton("FireBreak", 1, $FireBreakImage);
             $form->sendToPlayer($p);
         } elseif ($system == "HealerSystem") {
             $form = new SimpleForm(function (Player $player, $data) {
@@ -916,13 +1502,455 @@ class Main extends PluginBase implements Listener {
                                 $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
                                 $form->sendToPlayer($player);
                                 return;
+
+                            case 1:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("BigHeal")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("BigHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "BigHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("BigHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "BigHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("BigHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "BigHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $price = $this->config->get("BigHeal");
+                                $system = $this->getSystem($user);
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Average heal spell that adds 4 hp when you crouch.");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+
+                            case 2:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("MaxHeal")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MaxHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "MaxHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MaxHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "MaxHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("MaxHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "MaxHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $price = $this->config->get("MaxHeal");
+                                $system = $this->getSystem($user);
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Advanced heal spell that heals to max hp when you crouch.");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+
+                            case 3:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("BlessedHeal")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("BlessedHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "BlessedHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("BlessedHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "BlessedHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("BlessedHeal");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "BlessedHeal";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $price = $this->config->get("BlessedHeal");
+                                $system = $this->getSystem($user);
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "God Tier heal spell that adds max hp when you crouch and adds buffs (5 block AOE).");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+
+                            case 4:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("Buff")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Buff");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Buff";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Buff");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Buff";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Buff");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Buff";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $price = $this->config->get("Buff");
+                                $system = $this->getSystem($user);
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $SkillImage = $this->config->get("BuufImage");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Support buff spell that activates when you crouch. (AOE, 5 blocks");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
+
+                            case 5:
+                                $form = new SimpleForm(function (Player $player, $data) {
+                                            switch ($data) {
+                                                case 0:
+                                                    if ($this->getSkillPoints($player->getName()) >= $this->config->get("Debuff")) {
+                                                        $form = new SimpleForm(function (Player $player, $data) {
+                                                                    switch ($data) {
+                                                                        case 0:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Debuff");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Debuff";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 1:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Debuff");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Debuff";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 2:
+                                                                            $user = $player->getName();
+                                                                            $price = $this->config->get("Debuff");
+                                                                            $cskill = $this->playerskills->get($user);
+                                                                            $skillOne = "Debuff";
+                                                                            $skillTwo = $cskill[1];
+                                                                            $skillThree = $cskill[2];
+                                                                            $this->playerskills->remove($user);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->playerskills->set($user, [$skillOne, $skillTwo, $skillThree]);
+                                                                            $this->playerskills->save();
+                                                                            $this->playerskills->reload();
+                                                                            $this->minusSkillPoints($user, $price);
+                                                                            return;
+                                                                        case 3:
+                                                                            return;
+                                                                    }
+                                                                });
+                                                        $user = $player->getName();
+                                                        $system = $this->getSystem($user);
+                                                        $cskill = $this->playerskills->get($user);
+                                                        $skillThree = $cskill[2];
+                                                        $skillTwo = $cskill[1];
+                                                        $skillOne = $cskill[0];
+                                                        $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                                        $form->setContent(TextFormat::BOLD . TextFormat::GOLD . "Replace Skill (Can not get it back for free)");
+                                                        $form->addButton(TextFormat::RED . "$skillOne");
+                                                        $form->addButton(TextFormat::RED . "$skillTwo");
+                                                        $form->addButton(TextFormat::RED . "$skillThree");
+                                                        $form->addButton(TextFormat::RED . "Exit");
+                                                        $form->sendToPlayer($player);
+                                                        return;
+                                                    } else {
+                                                        $player->sendMessage(TextFormat::RED . "You don't have the skill points to learn");
+                                                    }
+                                            }
+                                        });
+                                $user = $player->getName();
+                                $price = $this->config->get("Debuff");
+                                $system = $this->getSystem($user);
+                                $MenuShopImage = $this->config->get("MenuShop");
+                                $form->setTitle(TextFormat::DARK_PURPLE . $system);
+                                $form->setContent(TextFormat::WHITE . "Advanced Debuff spell that activates when you crouch. (AOE, 5 blocks)");
+                                $form->addButton(TextFormat::GREEN . "Buy: $price SP", 1, $MenuShopImage);
+                                $form->addButton(TextFormat::RED . "Back", 1, $MenuShopImage);
+                                $form->sendToPlayer($player);
+                                return;
                         }
                     });
             $system = $this->getSystem($user);
             $MenuInfoImage = $this->config->get("MenuInfo");
+            $HealImage = $this->config->get("HealImage");
+            $BigHealImage = $this->config->get("BigHealImage");
+            $MaxHealImage = $this->config->get("MaxHealImage");
+            $BlessedHealImage = $this->config->get("BlessedHealImage");
+            $BuffImage = $this->config->get("BuffImage");
+            $DebuffImage = $this->config->get("DebuffImage");
             $form->setTitle(TextFormat::DARK_PURPLE . $system);
             $form->setContent("");
-            $form->addButton("Heal", 1, $MenuInfoImage);
+            $form->addButton("Heal", 1, $HealImage);
+            $form->addButton("BigHeal", 1, $BigHealImage);
+            $form->addButton("MaxHeal", 1, $MaxHealImage);
+            $form->addButton("BlessedHeal", 1, $BlessedHealImage);
+            $form->addButton("Buff", 1, $BuffImage);
+            $form->addButton("Debuff", 1, $DebuffImage);
             $form->sendToPlayer($p);
         } elseif ($system == "BerserkerSystem") {
             $form = new SimpleForm(function (Player $player, $data) {
@@ -1015,10 +2043,10 @@ class Main extends PluginBase implements Listener {
                         }
                     });
             $system = $this->getSystem($user);
-            $MenuInfoImage = $this->config->get("MenuInfo");
+            $DoubleDamageImage = $this->config->get("DoubleDamageImage");
             $form->setTitle(TextFormat::DARK_PURPLE . $system);
             $form->setContent("");
-            $form->addButton("DoubleDamage", 1, $MenuInfoImage);
+            $form->addButton("DoubleDamage", 1, $DoubleDamageImage);
             $form->sendToPlayer($p);
         } else {
             $p->sendMessage(TextFormat::RED . "System not Supported");
@@ -1038,6 +2066,7 @@ class Main extends PluginBase implements Listener {
                     $MenuInfoImage = $this->config->get("MenuInfo");
                     $MenuSkillsImage = $this->config->get("MenuSkills");
                     $MenuShopImage = $this->config->get("MenuShop");
+                    $SummonImage = $this->config->get("SummonImage");
                     $world = $sender->getLevel()->getFolderName();
                     if ($world == $this->config->get("World")) {
                         if ($system == "MageSystem") {
@@ -1094,6 +2123,34 @@ class Main extends PluginBase implements Listener {
                                                 $this->skillShopForm($player, $user);
                                                 return;
                                             case 4:
+                                                $activeskill = $this->getSkill($player->getName());
+                                                if ($activeskill == "Summon") {
+                                                    $form = new CustomForm(function (Player $player, $data) {
+                                                                            if (!$data == null) {
+                                                                            $monster = $data[0];
+                                                                            if ($monster == "sombie" || $monster == "snow_solem" || $monster == "skeleton" || $monster == "sindicator") {
+                                                                                $className = PureEntities::getInstance()->getRegisteredClassNameFromShortName($monster);
+                                                                                $level = $player->getLevel();
+                                                                                $pos = new Position((float) $player->getX() + 5, (float) $player->getY(), (float) $player->getZ() + 5, $level);
+                                                                                PureEntities::getInstance()->scheduleCreatureSpawn($pos, $className::NETWORK_ID, $level, "");
+                                                                            return;
+                                                                            } else {
+                                                                                return;
+                                                                            }
+                                                                        } else {
+                                                                        return;
+                                                                        }
+                                                            });
+                                                    $MenuInfoImage = $this->config->get("MenuInfo");
+                                                    $form->setTitle(TextFormat::GOLD . TextFormat::BOLD . "Summon");
+                                                    $form->addInput(TextFormat::AQUA . "Mob:", "skeleton");
+                                                    $form->sendToPlayer($player);
+                                                    return;
+                                                } else {
+                                                    $player->sendMessage("Skill not activated");
+                                                    return;
+                                                }
+                                            case 5:
                                                 return;
                                         }
                                     });
@@ -1103,6 +2160,7 @@ class Main extends PluginBase implements Listener {
                             $form->addButton("Skills", 1, "$MenuSkillsImage");
                             $form->addButton("Select Skill", 1, "$MenuSkillsImage");
                             $form->addButton("Skill Store", 1, "$MenuShopImage");
+                            $form->addButton("Summon", 1, "$SummonImage");
                             $form->addButton(TextFormat::RED . "Exit");
                             $form->sendToPlayer($sender);
                             return true;

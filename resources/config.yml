@@ -2,9 +2,28 @@
 Config-Version: 1
 
 # Button Images
+# ===Menu===
 MenuInfo: "https://i.imgur.com/SBaHPa3.png"
 MenuSkills: "https://i.imgur.com/X2PKM6J.png"
 MenuShop: "https://i.imgur.com/X2PKM6J.png"
+
+# ===Mage===
+FireStarImage: "https://i.imgur.com/X2PKM6J.png"
+FireCrossImage: "https://i.imgur.com/X2PKM6J.png"
+
+# ===SpellBreakerImage
+FireBreakImage: "https://i.imgur.com/X2PKM6J.png"
+
+# ===Healer===
+HealImage: "https://i.imgur.com/X2PKM6J.png"
+BigHealImage: "https://i.imgur.com/X2PKM6J.png"
+MaxHealImage: "https://i.imgur.com/X2PKM6J.png"
+BlessedHealImage: "https://i.imgur.com/X2PKM6J.png"
+BuffImage: "https://i.imgur.com/X2PKM6J.png"
+DebuffImage: "https://i.imgur.com/X2PKM6J.png"
+
+# ===Berserker===
+DoubleDamageImage: "https://i.imgur.com/X2PKM6J.png"
 
 # System World
 World: "world"
@@ -25,11 +44,10 @@ MaxSXP: 49
 # Prices for skill shop (uses skill points) and system evolution (uses level and skill points)
 # ===Mage===
 SnowballStar: 5
-ArrowStar: 20
+ArrowShot: 20
 FlameStar: 30
 MoltenStar: 460
 SnowballCross: 10
-ArrowCross: 13
 FlameCross: 20
 MoltenCross: 370
 Summon: 900
@@ -91,5 +109,5 @@ Invisibility: 925
 PoisonSword: 72
 WitherSword: 100
 WitherAOE: 300 #8 blocks from player position
-ArrowAOE: 150
+HealAOE: 150
 LifeStealAOE: 125
