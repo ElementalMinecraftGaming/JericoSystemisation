@@ -10,9 +10,15 @@ MenuShop: "https://i.imgur.com/X2PKM6J.png"
 # ===Mage===
 FireStarImage: "https://i.imgur.com/X2PKM6J.png"
 FireCrossImage: "https://i.imgur.com/X2PKM6J.png"
+MoltenStarImage: "https://i.imgur.com/X2PKM6J.png"
+MoltenCrossImage: "https://i.imgur.com/X2PKM6J.png"
+ArrowShotImage: "https://i.imgur.com/X2PKM6J.png"
 
 # ===SpellBreakerImage
 FireBreakImage: "https://i.imgur.com/X2PKM6J.png"
+MoltenBreakImage: "https://i.imgur.com/X2PKM6J.png"
+AbnormalBreakImage: "https://i.imgur.com/X2PKM6J.png"
+AntiMageImage: "https://i.imgur.com/X2PKM6J.png"
 
 # ===Healer===
 HealImage: "https://i.imgur.com/X2PKM6J.png"
@@ -24,6 +30,8 @@ DebuffImage: "https://i.imgur.com/X2PKM6J.png"
 
 # ===Berserker===
 DoubleDamageImage: "https://i.imgur.com/X2PKM6J.png"
+TripleDamageImage: "https://i.imgur.com/X2PKM6J.png"
+BloodlustImage: "https://i.imgur.com/X2PKM6J.png"
 
 # System World
 World: "world"
@@ -43,11 +51,9 @@ MaxSXP: 49
 
 # Prices for skill shop (uses skill points) and system evolution (uses level and skill points)
 # ===Mage===
-SnowballStar: 5
 ArrowShot: 20
 FlameStar: 30
 MoltenStar: 460
-SnowballCross: 10
 FlameCross: 20
 MoltenCross: 370
 Summon: 900
@@ -61,24 +67,21 @@ MaxHeal: 23
 BlessedHeal: 58
 Buff: 278
 Debuff: 278
-PlasticSurgery: 65
 HealerEvolutionSP: 320
 HealerEvolutionLVL: 750
 
 # ===SpellBreaker===
 FireBreak: 20
-DrownBreak: 40
+AbnormalBreak: 40
 MoltenBreak: 60 #Only works in the overworld
-ArrowBreak: 35
 AntiMage: 500
 SpellBreakerEvolutionSP: 320
 SpellBreakerEvolutionLVL: 750
 
 # ===Berserker===
 DoubleDamage: 10
-IronSkin: 35
 TripleDamage: 25
-Bloodlust: 75 #Quadriple damage, Iron Skin, life steal
+Bloodlust: 75 #Double damage, Resistance 2, Penetration 1
 BerserkerEvolutionSP: 320
 BerserkerEvolutionLVL: 750
 
@@ -87,7 +90,7 @@ BerserkerEvolutionLVL: 750
 # ===OverLord=== -Evolution of the SprellBreaker-
 OverlordLifeSteal: 300
 Health: 70
-Teleportation: 60
+DimensionGate: 60
 Mage: 800
 Healer: 800
 LifeClog: 15 #Stops people stealing life through skills
@@ -100,7 +103,7 @@ DemonFlameStar: 40
 DemonFlameCross: 30
 
 # ===Warlock=== -Evolution of Mage-
-TripleDamage: 250
+WarlockTripleDamage: 250
 Teleportation: 100
 WitherBlade: 180
 Invisibility: 925
